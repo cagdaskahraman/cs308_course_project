@@ -15,6 +15,7 @@ This project is an e-commerce platform for an electronics store. It includes cus
 - Frontend: ReactJS + Bootstrap
 - Backend: Spring Boot or NodeJS
 - Database: PostgreSQL
+- Other Fundemental Tools: GitHub, GitHub Projects/Jira, Postman, Figma, JUnit + Mockito, React Testing Library, Docker
 
 ## Project Structure
 - frontend/
