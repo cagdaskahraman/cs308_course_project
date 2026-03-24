@@ -1,17 +1,19 @@
 # CS308 Course Project - Electronics Store
 
 ## Team Members
-- Name 1
-- Name 2
-- Name 3
-- Name 4
+- Çağdaş Kahraman
+- Salih Tufanoğlu
+- Alp Mert Ekşi
+- Senih Kırmaç
+- Emir Kaan Yılmaz
+- Enes Ovalı
 
 ## Project Description
 This project is an e-commerce platform for an electronics store. It includes customer and admin interfaces with role-based access.
 
 ## Tech Stack
 - Frontend: ReactJS + Bootstrap
-- Backend: Spring Boot
+- Backend: Spring Boot or NodeJS
 - Database: PostgreSQL
 
 ## Project Structure
