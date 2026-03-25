@@ -13,7 +13,7 @@ This project is an e-commerce platform for an electronics store. It includes cus
 
 ## Tech Stack
 - Frontend: ReactJS + Bootstrap
-- Backend: Node.js + NestJS
+- Backend: Jest + Supertest
 - Database: PostgreSQL
 - Other Fundemental Tools: GitHub, GitHub Projects/Jira, Postman, Figma, JUnit + Mockito, React Testing Library, Docker
 
