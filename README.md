@@ -36,3 +36,4 @@ Meeting notes and backlog are stored under `docs/`.
 
 ## Contributors
 All team members contribute via pull requests.
+
