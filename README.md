@@ -37,7 +37,7 @@ This project is an e-commerce platform for an electronics store. It includes cus
 ### 1) Clone and install
 
 ```bash
-git clone https://github.com/cagdaskahraman/cs308_course_project.git
+git clone -b dev https://github.com/cagdaskahraman/cs308_course_project.git
 cd cs308_course_project
 ```
 
