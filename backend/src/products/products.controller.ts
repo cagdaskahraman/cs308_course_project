@@ -1,8 +1,5 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { ApiOperation } from '@nestjs/swagger';
-
-import { Product } from './entities/product.entity';
-import { CreateProductDto } from './dto/create-product.dto';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Product } from './product.type';
 import { ProductsService } from './products.service';
 
 @Controller('products')
@@ -10,21 +7,16 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List all products' })
-  findAll(): Promise<Product[]> {
-    return this.productsService.findAll();
+  getProducts(
+    @Query('search') search?: string,
+    @Query('sortBy') sortBy?: 'price' | 'popularity',
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+  ): Product[] {
+    return this.productsService.findAll({ search, sortBy, sortOrder });
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get product by id' })
-  findOne(@Param('id') id: string): Promise<Product> {
+  getProductById(@Param('id', ParseIntPipe) id: number): Product {
     return this.productsService.findOne(id);
   }
-
-  @Post()
-  @ApiOperation({ summary: 'Create a new product' })
-  create(@Body() payload: CreateProductDto): Promise<Product> {
-    return this.productsService.create(payload);
-  }
 }
-
