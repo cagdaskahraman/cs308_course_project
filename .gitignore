@@ -1,4 +1,6 @@
-# Node / React
+# ========================
+# Node / React / NestJS
+# ========================
 node_modules/
 dist/
 build/
@@ -7,35 +9,41 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Env files
+# ========================
+# Environment variables
+# ========================
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 
-# Java / Spring Boot
-target/
-*.class
-*.jar
-*.war
-*.ear
+# ========================
+# Logs
+# ========================
+logs
 *.log
 
-# Maven / Gradle
-.gradle/
-build/
+# ========================
+# OS
+# ========================
+.DS_Store
+Thumbs.db
 
+# ========================
 # IDE
+# ========================
 .idea/
 *.iml
 .vscode/
 *.swp
 
-# OS
-.DS_Store
-Thumbs.db
+# ========================
+# Cache / temp
+# ========================
+.cache/
+tmp/
+temp/
 
-# Sensitive config
-application.properties
-application.yml
+# ========================
+# Optional
+# ========================
+*.local
