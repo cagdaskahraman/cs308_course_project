@@ -13,7 +13,7 @@ const dummyProducts: Omit<Product, 'id'>[] = [
     price: 42999.99,
     stockQuantity: 12,
     category: 'Laptop',
-    imageUrl: 'https://example.com/images/laptop-ultrabook-pro-15.png',
+    imageUrl: '/assets/products/laptop-ultrabook-pro-15.png',
   },
   {
     name: 'NovaPhone X',
@@ -22,7 +22,7 @@ const dummyProducts: Omit<Product, 'id'>[] = [
     price: 18999.5,
     stockQuantity: 40,
     category: 'Smartphone',
-    imageUrl: 'https://example.com/images/smartphone-novaphone-x.png',
+    imageUrl: '/assets/products/smartphone-novaphone-x.jpg',
   },
   {
     name: 'SoundWave ANC 700',
@@ -31,7 +31,7 @@ const dummyProducts: Omit<Product, 'id'>[] = [
     price: 3499.0,
     stockQuantity: 85,
     category: 'Headphones',
-    imageUrl: 'https://example.com/images/headphones-soundwave-anc-700.png',
+    imageUrl: '/assets/products/headphones-soundwave-anc-700.png',
   },
 ];
 
