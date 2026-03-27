@@ -33,3 +33,16 @@ Meeting notes and backlog are stored under `docs/`.
 
 ## Contributors
 All team members contribute via pull requests.
+
+## SCRUM-29: Hello World Endpoint
+
+### Run backend
+```bash
+cd backend
+npm install
+npm run start
+```
+
+### Verify endpoint
+- Request: `GET http://localhost:3000/hello`
+- Expected response: `Hello World`
