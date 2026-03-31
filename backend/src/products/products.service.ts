@@ -1,79 +1,53 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Product } from './product.type';
+import { productsSeed, validateProductsSeed } from './products.seed';
 
 @Injectable()
 export class ProductsService {
-  private readonly products: Product[] = [
-    {
-      id: 1,
-      name: 'Apple iPhone 15 128GB',
-      category: 'Phone',
-      price: 54999,
-      currency: 'TRY',
-      imageUrl:
-        'https://images.unsplash.com/photo-1592286667927-6fbc5f6f8c6d?auto=format&fit=crop&w=800&q=80',
-      inStock: true,
-      rating: 4.8,
-    },
-    {
-      id: 2,
-      name: 'Samsung Galaxy S24 256GB',
-      category: 'Phone',
-      price: 49999,
-      currency: 'TRY',
-      imageUrl:
-        'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=800&q=80',
-      inStock: true,
-      rating: 4.7,
-    },
-    {
-      id: 3,
-      name: 'Lenovo Legion 5 Pro',
-      category: 'Laptop',
-      price: 62999,
-      currency: 'TRY',
-      imageUrl:
-        'https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=800&q=80',
-      inStock: true,
-      rating: 4.6,
-    },
-    {
-      id: 4,
-      name: 'Sony WH-1000XM5',
-      category: 'Headphone',
-      price: 12999,
-      currency: 'TRY',
-      imageUrl:
-        'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&w=800&q=80',
-      inStock: false,
-      rating: 4.9,
-    },
-    {
-      id: 5,
-      name: 'Logitech MX Master 3S',
-      category: 'Accessory',
-      price: 4299,
-      currency: 'TRY',
-      imageUrl:
-        'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=800&q=80',
-      inStock: true,
-      rating: 4.8,
-    },
-    {
-      id: 6,
-      name: 'Xiaomi Redmi Watch 4',
-      category: 'Wearable',
-      price: 3499,
-      currency: 'TRY',
-      imageUrl:
-        'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80',
-      inStock: true,
-      rating: 4.4,
-    },
-  ];
+  private readonly products: Product[] = productsSeed;
 
-  findAll(): Product[] {
-    return this.products;
+  constructor() {
+    validateProductsSeed(this.products);
+  }
+
+  findAll(options?: {
+    search?: string;
+    category?: string;
+    sortBy?: 'price' | 'popularity';
+    sortOrder?: 'asc' | 'desc';
+  }): Product[] {
+    let result = [...this.products];
+
+    if (options?.search) {
+      const normalized = options.search.trim().toLowerCase();
+      result = result.filter(
+        (item) =>
+          item.name.toLowerCase().includes(normalized) ||
+          item.description.toLowerCase().includes(normalized),
+      );
+    }
+
+    if (options?.category) {
+      const normalizedCategory = options.category.trim().toLowerCase();
+      result = result.filter((item) => item.category.toLowerCase() === normalizedCategory);
+    }
+
+    if (options?.sortBy) {
+      const sortOrder = options.sortOrder ?? 'asc';
+      result.sort((a, b) => {
+        const left = a[options.sortBy!];
+        const right = b[options.sortBy!];
+        return sortOrder === 'asc' ? left - right : right - left;
+      });
+    }
+
+    return result;
+  }
+
+  getCategories(): string[] {
+    return [...new Set(this.products.map((product) => product.category))].sort((a, b) =>
+      a.localeCompare(b),
+    );
   }
 
   findOne(id: number): Product {
