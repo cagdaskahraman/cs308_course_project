@@ -1,32 +1,60 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-
-import { Product } from './entities/product.entity';
-import { CreateProductDto } from './dto/create-product.dto';
+import { Product } from './product.type';
+import { productsSeed, validateProductsSeed } from './products.seed';
 
 @Injectable()
 export class ProductsService {
-  constructor(
-    @InjectRepository(Product)
-    private readonly productsRepository: Repository<Product>,
-  ) {}
+  private readonly products: Product[] = productsSeed;
 
-  async findAll(): Promise<Product[]> {
-    return this.productsRepository.find();
+  constructor() {
+    validateProductsSeed(this.products);
   }
 
-  async findOne(id: string): Promise<Product> {
-    const product = await this.productsRepository.findOneBy({ id });
+  findAll(options?: {
+    search?: string;
+    category?: string;
+    sortBy?: 'price' | 'popularity';
+    sortOrder?: 'asc' | 'desc';
+  }): Product[] {
+    let result = [...this.products];
+
+    if (options?.search) {
+      const normalized = options.search.trim().toLowerCase();
+      result = result.filter(
+        (item) =>
+          item.name.toLowerCase().includes(normalized) ||
+          item.description.toLowerCase().includes(normalized),
+      );
+    }
+
+    if (options?.category) {
+      const normalizedCategory = options.category.trim().toLowerCase();
+      result = result.filter((item) => item.category.toLowerCase() === normalizedCategory);
+    }
+
+    if (options?.sortBy) {
+      const sortOrder = options.sortOrder ?? 'asc';
+      result.sort((a, b) => {
+        const left = a[options.sortBy!];
+        const right = b[options.sortBy!];
+        return sortOrder === 'asc' ? left - right : right - left;
+      });
+    }
+
+    return result;
+  }
+
+  getCategories(): string[] {
+    return [...new Set(this.products.map((product) => product.category))].sort((a, b) =>
+      a.localeCompare(b),
+    );
+  }
+
+  findOne(id: number): Product {
+    const product = this.products.find((item) => item.id === id);
     if (!product) {
-      throw new NotFoundException(`Product with id '${id}' not found`);
+      throw new NotFoundException(`Product with id ${id} not found`);
     }
     return product;
   }
-
-  async create(payload: CreateProductDto): Promise<Product> {
-    const product = this.productsRepository.create(payload);
-    return this.productsRepository.save(product);
-  }
 }
-
