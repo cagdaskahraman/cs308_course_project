@@ -1,0 +1,19 @@
+.app-bg {
+  background: linear-gradient(180deg, #f8f9ff 0%, #eef2ff 100%);
+}
+
+.product-card {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.product-image {
+  height: 220px;
+  width: 100%;
+  object-fit: cover;
+  background-color: #f1f3f5;
+}
+
+.card-title {
+  font-size: 1.1rem;
+}
