@@ -1,9 +1,15 @@
 export type Product = {
-  id: string;
+  id: number;
   name: string;
+  model: string;
+  serialNumber: string;
   description: string;
   category: string;
+  quantityInStock: number;
   price: number;
-  stockQuantity: number;
+  currency: 'TRY';
+  warrantyStatus: string;
+  distributorInfo: string;
+  popularity: number;
   imageUrl: string;
 };
