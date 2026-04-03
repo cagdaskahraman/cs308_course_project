@@ -44,3 +44,15 @@ export const getCategories = async (): Promise<string[]> => {
   }
   return response.json() as Promise<string[]>;
 };
+
+export const getProductById = async (id: string): Promise<Product> => {
+  const response = await fetch(`${apiBaseUrl}/products/${id}`);
+  if (!response.ok) {
+    throw new Error(`Product request failed with status ${response.status}`);
+  }
+  const product = (await response.json()) as Product;
+  return {
+    ...product,
+    imageUrl: toAbsoluteImageUrl(product.imageUrl),
+  };
+};
