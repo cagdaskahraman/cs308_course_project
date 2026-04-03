@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
 } from '@nestjs/common';
 import {
@@ -20,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 
 import { AddCartItemDto } from './dto/add-cart-item.dto';
+import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { CartService } from './cart.service';
 import { Cart } from './entities/cart.entity';
 
@@ -49,5 +51,21 @@ export class CartController {
   @ApiNotFoundResponse({ description: 'Cart or product not found.' })
   addItem(@Body() body: AddCartItemDto): Promise<Cart> {
     return this.cartService.addItem(body);
+  }
+
+  @Patch(':cartId/items/:itemId')
+  @ApiOperation({ summary: 'Update cart item quantity' })
+  @ApiParam({ name: 'cartId', format: 'uuid' })
+  @ApiParam({ name: 'itemId', format: 'uuid' })
+  @ApiBody({ type: UpdateCartItemDto })
+  @ApiOkResponse({ description: 'Cart item updated.', type: Cart })
+  @ApiBadRequestResponse({ description: 'Insufficient stock.' })
+  @ApiNotFoundResponse({ description: 'Cart or cart item not found.' })
+  updateItem(
+    @Param('cartId', new ParseUUIDPipe({ version: '4' })) cartId: string,
+    @Param('itemId', new ParseUUIDPipe({ version: '4' })) itemId: string,
+    @Body() body: UpdateCartItemDto,
+  ): Promise<Cart> {
+    return this.cartService.updateItem(cartId, itemId, body);
   }
 }
