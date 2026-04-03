@@ -1,28 +1,32 @@
-import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
-import { Product } from './product.type';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+
+import { FindProductsQueryDto } from './dto/find-products-query.dto';
+import { Product } from './entities/product.entity';
 import { ProductsService } from './products.service';
 
+@ApiTags('products')
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  getProducts(
-    @Query('search') search?: string,
-    @Query('category') category?: string,
-    @Query('sortBy') sortBy?: 'price' | 'popularity',
-    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
-  ): Product[] {
-    return this.productsService.findAll({ search, category, sortBy, sortOrder });
+  @ApiOperation({ summary: 'List products (from database)' })
+  getProducts(@Query() query: FindProductsQueryDto): Promise<Product[]> {
+    return this.productsService.findAll({ ...query });
   }
 
   @Get('categories')
-  getCategories(): string[] {
+  @ApiOperation({ summary: 'List distinct product categories' })
+  getCategories(): Promise<string[]> {
     return this.productsService.getCategories();
   }
 
   @Get(':id')
-  getProductById(@Param('id', ParseIntPipe) id: number): Product {
+  @ApiOperation({ summary: 'Get product by UUID' })
+  getProductById(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<Product> {
     return this.productsService.findOne(id);
   }
 }
