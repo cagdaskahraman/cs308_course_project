@@ -4,6 +4,7 @@ import { DataSourceOptions } from 'typeorm';
 import { OrderItem } from '../orders/entities/order-item.entity';
 import { Order } from '../orders/entities/order.entity';
 import { Product } from '../products/entities/product.entity';
+import { Review } from '../reviews/entities/review.entity';
 
 export function getDatabaseEnv(): {
   host: string;
@@ -26,7 +27,7 @@ export function getTypeOrmModuleOptions(): TypeOrmModuleOptions {
   return {
     type: 'postgres',
     ...getDatabaseEnv(),
-    entities: [Product, Order, OrderItem],
+    entities: [Product, Order, OrderItem, Review],
     synchronize: false,
     logging: process.env.TYPEORM_LOGGING === 'true',
   };
