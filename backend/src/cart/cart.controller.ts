@@ -1,8 +1,11 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
 import {
@@ -10,7 +13,9 @@ import {
   ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 
@@ -23,6 +28,17 @@ import { Cart } from './entities/cart.entity';
 @Controller('cart')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get cart by id' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ description: 'Cart found.' })
+  @ApiNotFoundResponse({ description: 'Cart not found.' })
+  getCart(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<{ cart: Cart; totalPrice: number }> {
+    return this.cartService.findOne(id);
+  }
 
   @Post('items')
   @HttpCode(HttpStatus.CREATED)

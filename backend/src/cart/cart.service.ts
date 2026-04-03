@@ -68,4 +68,22 @@ export class CartService {
       });
     });
   }
+
+  // Get cart with items and totals
+  async findOne(id: string): Promise<{ cart: Cart; totalPrice: number }> {
+    const cart = await this.cartRepository.findOne({
+      where: { id },
+      relations: { items: { product: true } },
+    });
+    if (!cart) {
+      throw new NotFoundException(`Cart not found: ${id}`);
+    }
+
+    const totalPrice = cart.items.reduce(
+      (sum, item) => sum + item.quantity * item.product.price,
+      0,
+    );
+
+    return { cart, totalPrice };
+  }
 }
