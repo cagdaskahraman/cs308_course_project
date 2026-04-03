@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getProducts } from './services/productService';
+import { getCategories, getProducts } from './services/productService';
 import type { Product } from './types/product';
 
 const formatPrice = (price: number): string =>
@@ -11,15 +11,29 @@ const formatPrice = (price: number): string =>
 
 export const App = (): JSX.Element => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    const load = async () => {
+    const fetchCategories = async () => {
+      try {
+        const list = await getCategories();
+        setCategories(list);
+      } catch (err) {
+        console.error('Could not load categories:', err);
+      }
+    };
+    void fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
       try {
         setLoading(true);
         setError('');
-        const list = await getProducts();
+        const list = await getProducts(selectedCategory);
         setProducts(list);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unexpected error';
@@ -28,9 +42,28 @@ export const App = (): JSX.Element => {
         setLoading(false);
       }
     };
+    void fetchProducts();
+  }, [selectedCategory]);
 
-    void load();
-  }, []);
+  const categoryPills = (
+    <div className="d-flex flex-wrap gap-2 mb-4 justify-content-center">
+      <button
+        className={`btn btn-sm rounded-pill ${selectedCategory === null ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
+        onClick={() => setSelectedCategory(null)}
+      >
+        All Products
+      </button>
+      {categories.map((cat) => (
+        <button
+          key={cat}
+          className={`btn btn-sm rounded-pill ${selectedCategory === cat ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
+          onClick={() => setSelectedCategory(cat)}
+        >
+          {cat}
+        </button>
+      ))}
+    </div>
+  );
 
   const content = useMemo(() => {
     if (loading) {
@@ -81,7 +114,11 @@ export const App = (): JSX.Element => {
           <p className="text-secondary mb-0">Featured Products</p>
         </div>
       </header>
-      <main className="container py-4">{content}</main>
+      <main className="container py-4">
+        {categoryPills}
+        {content}
+      </main>
     </div>
   );
 };
+
