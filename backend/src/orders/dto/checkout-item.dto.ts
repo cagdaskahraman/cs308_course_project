@@ -3,13 +3,31 @@ import { Type } from 'class-transformer';
 import { IsInt, IsUUID, Min } from 'class-validator';
 
 export class CheckoutItemDto {
-  @ApiProperty({ format: 'uuid', example: '550e8400-e29b-41d4-a716-446655440000' })
-  @IsUUID('4')
+  @ApiProperty({
+    format: 'uuid',
+    description:
+      'Unique identifier of the product to purchase. Must be a valid UUID v4 that exists in the catalog.',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsUUID('4', {
+    message:
+      'Product ID must be a valid UUID v4 string (e.g. 550e8400-e29b-41d4-a716-446655440000).',
+  })
   productId!: string;
 
-  @ApiProperty({ minimum: 1, example: 2 })
+  @ApiProperty({
+    type: 'integer',
+    minimum: 1,
+    description:
+      'Number of units to order for this product. Must be a whole number; partial quantities are not allowed.',
+    example: 2,
+  })
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
+  @IsInt({
+    message: 'Quantity must be a valid integer (no decimals).',
+  })
+  @Min(1, {
+    message: 'Quantity must be a valid integer greater than zero.',
+  })
   quantity!: number;
 }
