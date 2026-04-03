@@ -53,7 +53,7 @@ export const App = (): JSX.Element => {
       <div className="row g-4">
         {products.map((product) => (
           <div className="col-12 col-md-6 col-lg-4" key={product.id}>
-            <article className="card product-card h-100 border-0 shadow-sm">
+            <article className={`card product-card h-100 border-0 shadow-sm ${product.stockQuantity === 0 ? 'opacity-50' : ''}`}>
               <img className="card-img-top product-image" src={product.imageUrl} alt={product.name} />
               <div className="card-body d-flex flex-column">
                 <div className="d-flex justify-content-between align-items-start mb-2">
@@ -63,7 +63,11 @@ export const App = (): JSX.Element => {
                 <p className="card-text text-secondary flex-grow-1">{product.description}</p>
                 <div className="d-flex justify-content-between align-items-center mt-3">
                   <span className="fw-bold fs-5 text-primary">{formatPrice(product.price)}</span>
-                  <span className="small text-secondary">Stock: {product.stockQuantity}</span>
+                  {product.stockQuantity === 0 ? (
+                    <span className="badge bg-danger">Out of Stock</span>
+                  ) : (
+                    <span className="small text-secondary">Stock: {product.stockQuantity}</span>
+                  )}
                 </div>
               </div>
             </article>
