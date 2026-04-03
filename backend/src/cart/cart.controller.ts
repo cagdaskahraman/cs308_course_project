@@ -6,6 +6,8 @@ import {
   Post,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
+  ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOperation,
@@ -25,7 +27,9 @@ export class CartController {
   @Post('items')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Add item to cart' })
+  @ApiBody({ type: AddCartItemDto })
   @ApiCreatedResponse({ description: 'Item added to cart.', type: Cart })
+  @ApiBadRequestResponse({ description: 'Insufficient stock.' })
   @ApiNotFoundResponse({ description: 'Cart or product not found.' })
   addItem(@Body() body: AddCartItemDto): Promise<Cart> {
     return this.cartService.addItem(body);
