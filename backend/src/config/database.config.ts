@@ -1,6 +1,8 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { DataSourceOptions } from 'typeorm';
 
+import { CartItem } from '../cart/entities/cart-item.entity';
+import { Cart } from '../cart/entities/cart.entity';
 import { OrderItem } from '../orders/entities/order-item.entity';
 import { Order } from '../orders/entities/order.entity';
 import { Product } from '../products/entities/product.entity';
@@ -26,7 +28,7 @@ export function getTypeOrmModuleOptions(): TypeOrmModuleOptions {
   return {
     type: 'postgres',
     ...getDatabaseEnv(),
-    entities: [Product, Order, OrderItem],
+    entities: [Product, Order, OrderItem, Cart, CartItem],
     synchronize: false,
     logging: process.env.TYPEORM_LOGGING === 'true',
   };
