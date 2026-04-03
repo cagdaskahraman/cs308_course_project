@@ -3,11 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { Product } from '../products/entities/product.entity';
 import { CheckoutDto } from './dto/checkout.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderItem } from './entities/order-item.entity';
 import { OrderStatus } from './entities/order-status.enum';
 import { Order } from './entities/order.entity';
@@ -17,6 +18,8 @@ export class OrdersService {
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
   ) {}
 
   async checkout(dto: CheckoutDto): Promise<Order> {
@@ -66,5 +69,54 @@ export class OrdersService {
         relations: { items: { product: true } },
       });
     });
+  }
+
+  async findOne(id: string): Promise<Order> {
+    const order = await this.orderRepository.findOne({
+      where: { id },
+      relations: { items: { product: true } },
+    });
+    if (!order) {
+      throw new NotFoundException(`Order not found: ${id}`);
+    }
+    return order;
+  }
+
+  async updateStatus(id: string, dto: UpdateOrderStatusDto): Promise<Order> {
+    const order = await this.orderRepository.findOne({ where: { id } });
+    if (!order) {
+      throw new NotFoundException(`Order not found: ${id}`);
+    }
+
+    const next = dto.status;
+    if (!OrdersService.isValidStatusTransition(order.status, next)) {
+      throw new BadRequestException(
+        `Invalid status transition from '${order.status}' to '${next}'`,
+      );
+    }
+
+    order.status = next;
+    await this.orderRepository.save(order);
+
+    if (next === OrderStatus.InTransit) {
+      console.log(
+        `[DeliveryEvent] Order ${order.id} forwarded to Delivery Department`,
+      );
+    }
+
+    return this.findOne(id);
+  }
+
+  private static isValidStatusTransition(
+    current: OrderStatus,
+    next: OrderStatus,
+  ): boolean {
+    const allowed: Record<OrderStatus, readonly OrderStatus[]> = {
+      [OrderStatus.Processing]: [OrderStatus.InTransit, OrderStatus.Cancelled],
+      [OrderStatus.InTransit]: [OrderStatus.Delivered],
+      [OrderStatus.Delivered]: [],
+      [OrderStatus.Cancelled]: [],
+    };
+    return allowed[current].includes(next);
   }
 }
