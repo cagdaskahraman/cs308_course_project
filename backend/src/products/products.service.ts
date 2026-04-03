@@ -1,59 +1,63 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Product } from './product.type';
-import { productsSeed, validateProductsSeed } from './products.seed';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
+import { Product } from './entities/product.entity';
 
 @Injectable()
 export class ProductsService {
-  private readonly products: Product[] = productsSeed;
+  constructor(
+    @InjectRepository(Product)
+    private readonly productsRepository: Repository<Product>,
+  ) {}
 
-  constructor() {
-    validateProductsSeed(this.products);
-  }
-
-  findAll(options?: {
+  async findAll(options?: {
     search?: string;
     category?: string;
     sortBy?: 'price' | 'popularity';
     sortOrder?: 'asc' | 'desc';
-  }): Product[] {
-    let result = [...this.products];
+  }): Promise<Product[]> {
+    const qb = this.productsRepository.createQueryBuilder('p');
 
-    if (options?.search) {
-      const normalized = options.search.trim().toLowerCase();
-      result = result.filter(
-        (item) =>
-          item.name.toLowerCase().includes(normalized) ||
-          item.description.toLowerCase().includes(normalized),
+    if (options?.search?.trim()) {
+      const term = `%${options.search.trim().toLowerCase()}%`;
+      qb.andWhere(
+        '(LOWER(p.name) LIKE :term OR LOWER(p.description) LIKE :term)',
+        { term },
       );
     }
 
-    if (options?.category) {
-      const normalizedCategory = options.category.trim().toLowerCase();
-      result = result.filter((item) => item.category.toLowerCase() === normalizedCategory);
-    }
-
-    if (options?.sortBy) {
-      const sortOrder = options.sortOrder ?? 'asc';
-      result.sort((a, b) => {
-        const left = a[options.sortBy!];
-        const right = b[options.sortBy!];
-        return sortOrder === 'asc' ? left - right : right - left;
+    if (options?.category?.trim()) {
+      qb.andWhere('LOWER(p.category) = LOWER(:category)', {
+        category: options.category.trim(),
       });
     }
 
-    return result;
+    if (options?.sortBy) {
+      const dir = options.sortOrder === 'desc' ? 'DESC' : 'ASC';
+      if (options.sortBy === 'price') {
+        qb.orderBy('p.price', dir);
+      } else {
+        qb.orderBy('p.stockQuantity', dir);
+      }
+    }
+
+    return qb.getMany();
   }
 
-  getCategories(): string[] {
-    return [...new Set(this.products.map((product) => product.category))].sort((a, b) =>
-      a.localeCompare(b),
-    );
+  async getCategories(): Promise<string[]> {
+    const rows = await this.productsRepository
+      .createQueryBuilder('p')
+      .select('DISTINCT p.category', 'category')
+      .orderBy('category', 'ASC')
+      .getRawMany<{ category: string }>();
+    return rows.map((r) => r.category);
   }
 
-  findOne(id: number): Product {
-    const product = this.products.find((item) => item.id === id);
+  async findOne(id: string): Promise<Product> {
+    const product = await this.productsRepository.findOne({ where: { id } });
     if (!product) {
-      throw new NotFoundException(`Product with id ${id} not found`);
+      throw new NotFoundException(`Product with id '${id}' not found`);
     }
     return product;
   }

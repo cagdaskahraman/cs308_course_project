@@ -1,10 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-const decimalToNumberTransformer = {
-  to: (value: number) => value,
-  // Postgres `decimal` TypeORM tarafından genelde string olarak döner.
-  from: (value: string) => Number(value),
-};
+import { decimalNumberTransformer } from '../../common/typeorm/decimal-number.transformer';
 
 @Entity('products')
 export class Product {
@@ -17,7 +13,7 @@ export class Product {
   @Column({ type: 'text' })
   description!: string;
 
-  @Column({ type: 'decimal', transformer: decimalToNumberTransformer })
+  @Column({ type: 'decimal', transformer: decimalNumberTransformer })
   price!: number;
 
   @Column({ name: 'stock_quantity', type: 'int' })
