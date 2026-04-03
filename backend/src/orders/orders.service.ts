@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
@@ -15,6 +16,8 @@ import { Order } from './entities/order.entity';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
@@ -99,7 +102,7 @@ export class OrdersService {
     await this.orderRepository.save(order);
 
     if (next === OrderStatus.InTransit) {
-      console.log(
+      this.logger.log(
         `[DeliveryEvent] Order ${order.id} forwarded to Delivery Department`,
       );
     }
