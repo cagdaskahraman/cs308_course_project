@@ -14,12 +14,25 @@ export const CheckoutPage = (): JSX.Element => {
   useEffect(() => {
     const cartId = getSavedCartId();
     if (!cartId) {
+      setError('');
+      setCartData(null);
       setLoading(false);
       return;
     }
     void getCart(cartId)
-      .then(setCartData)
-      .catch(() => setCartData(null))
+      .then((data) => {
+        setCartData(data);
+        setError('');
+      })
+      .catch((e) => {
+        localStorage.removeItem('electrostore_cart_id');
+        setCartData(null);
+        setError(
+          e instanceof Error
+            ? e.message
+            : 'Could not load cart. Please return to cart and add items again.',
+        );
+      })
       .finally(() => setLoading(false));
   }, []);
 

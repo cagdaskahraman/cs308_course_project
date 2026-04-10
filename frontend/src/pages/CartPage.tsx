@@ -19,14 +19,23 @@ export const CartPage = (): JSX.Element => {
   const loadCart = useCallback(async () => {
     const cartId = getSavedCartId();
     if (!cartId) {
+      setError('');
+      setCartData(null);
       setLoading(false);
       return;
     }
     try {
       const data = await getCart(cartId);
       setCartData(data);
-    } catch {
+      setError('');
+    } catch (e) {
+      localStorage.removeItem('electrostore_cart_id');
       setCartData(null);
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Could not load cart. A new cart will be created when you add an item.',
+      );
     } finally {
       setLoading(false);
     }
