@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getCategories, getProducts } from './services/productService';
 import type { Product } from './types/product';
 
@@ -9,12 +9,30 @@ const formatPrice = (price: number): string =>
     maximumFractionDigits: 2,
   }).format(price);
 
+function useDebounce(value: string, delay: number): string {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
+type SortOption = '' | 'price-asc' | 'price-desc';
+
 export const App = (): JSX.Element => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  const [sort, setSort] = useState<SortOption>('');
+
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -29,11 +47,24 @@ export const App = (): JSX.Element => {
   }, []);
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+    }
+
     const fetchProducts = async () => {
       try {
         setLoading(true);
         setError('');
-        const list = await getProducts(selectedCategory);
+
+        const sortBy = sort === 'price-asc' || sort === 'price-desc' ? 'price' as const : undefined;
+        const sortOrder = sort === 'price-asc' ? 'asc' as const : sort === 'price-desc' ? 'desc' as const : undefined;
+
+        const list = await getProducts({
+          category: selectedCategory,
+          search: debouncedSearch || undefined,
+          sortBy,
+          sortOrder,
+        });
         setProducts(list);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unexpected error';
@@ -43,7 +74,7 @@ export const App = (): JSX.Element => {
       }
     };
     void fetchProducts();
-  }, [selectedCategory]);
+  }, [selectedCategory, debouncedSearch, sort]);
 
   const categoryPills = (
     <div className="d-flex flex-wrap gap-2 mb-4 justify-content-center">
@@ -116,6 +147,30 @@ export const App = (): JSX.Element => {
       </header>
       <main className="container py-4">
         {categoryPills}
+
+        <div className="row g-2 mb-4 align-items-center">
+          <div className="col-12 col-md-8">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Search products..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+          </div>
+          <div className="col-12 col-md-4">
+            <select
+              className="form-select"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortOption)}
+            >
+              <option value="">Sort by</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+            </select>
+          </div>
+        </div>
+
         {content}
       </main>
     </div>
