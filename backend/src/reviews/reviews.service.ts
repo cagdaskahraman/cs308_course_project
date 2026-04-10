@@ -78,6 +78,21 @@ export class ReviewsService {
     return reviews.map((review) => this.toProductReviewResponse(review));
   }
 
+  /**
+   * Sets approved=true. Idempotent: already-approved reviews still succeed (single UPDATE).
+   */
+  async approve(reviewId: string): Promise<{ reviewId: string; approved: true }> {
+    const result = await this.reviewRepository.update(
+      { id: reviewId },
+      { approved: true },
+    );
+    const affected = result.affected ?? 0;
+    if (affected === 0) {
+      throw new NotFoundException(`Review not found: ${reviewId}`);
+    }
+    return { reviewId, approved: true };
+  }
+
   private toProductReviewResponse(review: Review): ProductReviewResponseDto {
     const user = review.user;
     return {

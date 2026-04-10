@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -26,7 +27,11 @@ import {
 } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import { UserRole } from '../users/user-role.enum';
 import { CurrentUserId } from '../auth/decorators/current-user-id.decorator';
+import { ApproveReviewResponseDto } from './dto/approve-review.response.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { ListProductReviewsQueryDto } from './dto/list-product-reviews.query.dto';
 import { ProductReviewResponseDto } from './dto/product-review-response.dto';
@@ -36,12 +41,16 @@ import { ProductReviewsListingGuard } from './guards/product-reviews-listing.gua
 import { ReviewsService } from './reviews.service';
 
 @ApiTags('Reviews')
-@ApiExtraModels(ProductReviewResponseDto, ReviewAuthorResponseDto)
-@Controller('products')
+@ApiExtraModels(
+  ProductReviewResponseDto,
+  ReviewAuthorResponseDto,
+  ApproveReviewResponseDto,
+)
+@Controller()
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
-  @Get(':productId/reviews')
+  @Get('products/:productId/reviews')
   @UseGuards(ProductReviewsListingGuard)
   @ApiOperation({
     summary: 'List reviews for a product',
@@ -84,7 +93,7 @@ export class ReviewsController {
     return this.reviewsService.findByProduct(productId, approvedOnly);
   }
 
-  @Post(':productId/reviews')
+  @Post('products/:productId/reviews')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -119,5 +128,38 @@ export class ReviewsController {
     @CurrentUserId() userId: string,
   ): Promise<Review> {
     return this.reviewsService.create(productId, dto, userId);
+  }
+
+  @Patch('reviews/:reviewId/approve')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ProductManager)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Approve a review (product managers)',
+    description:
+      'Sets the review’s moderated flag to approved. **product_manager** role required. ' +
+      'Idempotent: approving an already-approved review returns 200 without error.',
+  })
+  @ApiParam({
+    name: 'reviewId',
+    format: 'uuid',
+    description: 'Review to approve.',
+  })
+  @ApiOkResponse({
+    description: 'Review is now approved (or was already approved).',
+    type: ApproveReviewResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Missing or invalid Bearer token.',
+  })
+  @ApiForbiddenResponse({
+    description: 'Authenticated user does not have the product_manager role.',
+  })
+  @ApiNotFoundResponse({ description: 'Review id does not exist.' })
+  approveReview(
+    @Param('reviewId', new ParseUUIDPipe({ version: '4' })) reviewId: string,
+  ): Promise<ApproveReviewResponseDto> {
+    return this.reviewsService.approve(reviewId);
   }
 }
