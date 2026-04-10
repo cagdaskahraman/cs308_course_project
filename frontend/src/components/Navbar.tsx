@@ -1,7 +1,10 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export const Navbar = (): JSX.Element => {
   const { pathname } = useLocation();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const navLink = (to: string, label: string) => (
     <li className="nav-item" key={to}>
@@ -13,6 +16,11 @@ export const Navbar = (): JSX.Element => {
       </Link>
     </li>
   );
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <nav className="navbar navbar-expand-md bg-white border-bottom shadow-sm sticky-top">
@@ -32,6 +40,23 @@ export const Navbar = (): JSX.Element => {
           <ul className="navbar-nav ms-auto gap-1">
             {navLink('/', 'Catalog')}
             {navLink('/cart', 'Cart')}
+            {user ? (
+              <>
+                <li className="nav-item">
+                  <span className="nav-link text-secondary">{user.email}</span>
+                </li>
+                <li className="nav-item">
+                  <button className="nav-link btn btn-link" onClick={handleLogout}>
+                    Logout
+                  </button>
+                </li>
+              </>
+            ) : (
+              <>
+                {navLink('/login', 'Login')}
+                {navLink('/register', 'Register')}
+              </>
+            )}
           </ul>
         </div>
       </div>
