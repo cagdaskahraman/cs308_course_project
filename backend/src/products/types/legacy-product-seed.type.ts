@@ -1,4 +1,4 @@
-export type Product = {
+export type LegacyProductSeed = {
   id: number;
   name: string;
   model: string;
