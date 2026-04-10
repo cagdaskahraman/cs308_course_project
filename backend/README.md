@@ -28,7 +28,7 @@ Each product includes:
 - `serialNumber`
 - `description`
 - `category`
-- `quantityInStock`
+- `stockQuantity`
 - `price`
 - `warrantyStatus`
 - `distributorInfo`
@@ -39,17 +39,17 @@ Out-of-stock products remain visible/searchable through the API and can be handl
 ## Seed dataset and validation
 
 - Dataset includes **40 products** across **5 categories** (`Phone`, `Laptop`, `Headphone`, `Accessory`, `Tablet`).
-- At least 5 products are out-of-stock (`quantityInStock = 0`) for UI/cart edge-case testing.
+- At least 5 products are out-of-stock (`stockQuantity = 0`) for UI/cart edge-case testing.
 - Validation rules are enforced at startup:
   - `name`, `model`, `serialNumber` must be non-empty
   - `serialNumber` must be unique
   - `price > 0`
-  - `quantityInStock >= 0`
+  - `stockQuantity >= 0`
 
-Generate seed output file:
+Seed database with canonical catalog:
 
 ```bash
 npm run seed:products
 ```
 
-This command generates `backend/data/products.seed.json`.
+`seed:products` uses the same canonical dataset as API and tests.
