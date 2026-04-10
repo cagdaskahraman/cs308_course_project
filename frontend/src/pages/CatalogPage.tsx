@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getCategories, getProducts } from '../services/productService';
 import { getOrCreateCartId, addCartItem } from '../services/cartService';
+import { useToast } from '../context/ToastContext';
 import { formatPrice } from '../utils/formatPrice';
 import type { Product } from '../types/product';
 
@@ -12,6 +13,7 @@ export const CatalogPage = (): JSX.Element => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [addingId, setAddingId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     void getCategories()
@@ -35,7 +37,7 @@ export const CatalogPage = (): JSX.Element => {
       const cartId = await getOrCreateCartId();
       await addCartItem(cartId, product.id, 1);
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to add to cart');
+      showToast(e instanceof Error ? e.message : 'Failed to add to cart');
     } finally {
       setAddingId(null);
     }

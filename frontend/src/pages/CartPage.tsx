@@ -7,6 +7,7 @@ import {
   removeCartItem,
   type CartResponse,
 } from '../services/cartService';
+import { useToast } from '../context/ToastContext';
 import { formatPrice } from '../utils/formatPrice';
 
 export const CartPage = (): JSX.Element => {
@@ -15,6 +16,7 @@ export const CartPage = (): JSX.Element => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const loadCart = useCallback(async () => {
     const cartId = getSavedCartId();
@@ -41,7 +43,7 @@ export const CartPage = (): JSX.Element => {
       await updateCartItem(cartData.cart.id, itemId, newQty);
       await loadCart();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to update');
+      showToast(e instanceof Error ? e.message : 'Failed to update');
     } finally {
       setBusyItemId(null);
     }
@@ -54,7 +56,7 @@ export const CartPage = (): JSX.Element => {
       await removeCartItem(cartData.cart.id, itemId);
       await loadCart();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to remove');
+      showToast(e instanceof Error ? e.message : 'Failed to remove');
     } finally {
       setBusyItemId(null);
     }
