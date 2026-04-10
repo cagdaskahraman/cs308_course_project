@@ -7,6 +7,8 @@ import {
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
+import { Cart } from '../cart/entities/cart.entity';
+import { CartItem } from '../cart/entities/cart-item.entity';
 import { Product } from '../products/entities/product.entity';
 import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -66,6 +68,16 @@ export class OrdersService {
       });
 
       const saved = await manager.save(order);
+
+      if (dto.cartId) {
+        const cart = await manager.findOne(Cart, {
+          where: { id: dto.cartId },
+          relations: { items: true },
+        });
+        if (cart && cart.items.length > 0) {
+          await manager.remove(CartItem, cart.items);
+        }
+      }
 
       return manager.findOneOrFail(Order, {
         where: { id: saved.id },

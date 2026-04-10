@@ -39,7 +39,11 @@ export class CartService {
     }
   }
 
-  // Add item to cart
+  async create(): Promise<Cart> {
+    const cart = this.cartRepository.create();
+    return this.cartRepository.save(cart);
+  }
+
   async addItem(dto: AddCartItemDto): Promise<Cart> {
     return this.dataSource.transaction(async (manager) => {
       const cart = await manager.findOne(Cart, {
@@ -115,7 +119,40 @@ export class CartService {
     });
   }
 
-  // Get cart with items and totals
+  async removeItem(
+    cartId: string,
+    itemId: string,
+  ): Promise<{ cart: Cart; totalPrice: number }> {
+    return this.dataSource.transaction(async (manager) => {
+      const cart = await manager.findOne(Cart, {
+        where: { id: cartId },
+        relations: { items: { product: true } },
+      });
+      if (!cart) {
+        throw new NotFoundException(`Cart not found: ${cartId}`);
+      }
+
+      const cartItem = cart.items.find((item) => item.id === itemId);
+      if (!cartItem) {
+        throw new NotFoundException(`Cart item not found: ${itemId}`);
+      }
+
+      await manager.remove(CartItem, cartItem);
+
+      const refreshed = await manager.findOneOrFail(Cart, {
+        where: { id: cartId },
+        relations: { items: { product: true } },
+      });
+
+      const totalPrice = refreshed.items.reduce(
+        (sum, item) => sum + item.quantity * item.product.price,
+        0,
+      );
+
+      return { cart: refreshed, totalPrice };
+    });
+  }
+
   async findOne(id: string): Promise<{ cart: Cart; totalPrice: number }> {
     const cart = await this.cartRepository.findOne({
       where: { id },
