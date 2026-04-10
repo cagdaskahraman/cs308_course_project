@@ -28,6 +28,15 @@ async function bootstrap(): Promise<void> {
     .setTitle('CS308 Electronics Store API')
     .setDescription('REST API for the e-commerce backend')
     .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Paste JWT from POST /auth/token (or your identity provider).',
+      },
+      'JWT-auth',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api', app, document);
