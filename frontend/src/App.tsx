@@ -5,6 +5,7 @@ import { ProductDetailPage } from './pages/ProductDetailPage';
 import { CartPage } from './pages/CartPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderTrackingPage } from './pages/OrderTrackingPage';
+import { AdminReviewsPage } from './pages/AdminReviewsPage';
 
 export const App = (): JSX.Element => (
   <div className="app-bg min-vh-100">
@@ -16,6 +17,7 @@ export const App = (): JSX.Element => (
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/orders/:orderId" element={<OrderTrackingPage />} />
+        <Route path="/admin/reviews" element={<AdminReviewsPage />} />
       </Routes>
     </main>
   </div>
