@@ -3,14 +3,11 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { seedProducts } from '../src/database/seeds/product-seed';
 
 describe('Products API (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeAll(async () => {
-    await seedProducts();
-
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -28,7 +25,7 @@ describe('Products API (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) await app.close();
   });
 
   it('GET /products — returns product array', async () => {

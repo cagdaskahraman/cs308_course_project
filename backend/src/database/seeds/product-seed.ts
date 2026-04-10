@@ -14,7 +14,16 @@ export async function seedProducts(): Promise<void> {
   try {
     await AppDataSource.transaction(async (manager) => {
       const repo = manager.getRepository(Product);
-      await repo.clear();
+      // Keep seeding idempotent even when FK-linked rows exist (order_items/cart_items).
+      await manager.query(`
+        TRUNCATE TABLE
+          "order_items",
+          "cart_items",
+          "orders",
+          "carts",
+          "products"
+        RESTART IDENTITY CASCADE
+      `);
       await repo.save(repo.create(dbProductsSeed as Omit<Product, 'id'>[]));
       console.log(`${dbProductsSeed.length} products seeded.`);
     });

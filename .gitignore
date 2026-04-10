@@ -44,6 +44,13 @@ tmp/
 temp/
 
 # ========================
+# TypeScript / Vite build info
+# ========================
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+# ========================
 # Optional
 # ========================
 *.local
