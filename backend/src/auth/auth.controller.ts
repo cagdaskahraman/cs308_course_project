@@ -3,11 +3,15 @@ import {
   ApiBadRequestResponse,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
+  ApiUnauthorizedResponse,
   ApiTags,
 } from '@nestjs/swagger';
 
 import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
+import { LoginResponseDto } from './dto/login-response.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
 
@@ -29,5 +33,18 @@ export class AuthController {
   @ApiConflictResponse({ description: 'Email already exists.' })
   register(@Body() dto: RegisterDto): Promise<RegisterResponseDto> {
     return this.authService.register(dto);
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login and receive JWT access token' })
+  @ApiOkResponse({
+    description: 'Authenticated successfully.',
+    type: LoginResponseDto,
+  })
+  @ApiBadRequestResponse({ description: 'Validation failed.' })
+  @ApiUnauthorizedResponse({ description: 'Invalid credentials.' })
+  login(@Body() dto: LoginDto): Promise<LoginResponseDto> {
+    return this.authService.login(dto);
   }
 }
