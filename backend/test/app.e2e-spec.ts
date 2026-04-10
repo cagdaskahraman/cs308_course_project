@@ -3,11 +3,14 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { seedProducts } from '../src/database/seeds/product-seed';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
+    await seedProducts();
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -33,13 +36,20 @@ describe('AppController (e2e)', () => {
   });
 
   it('/products/:id (GET)', async () => {
-    const response = await request(app.getHttpServer()).get('/products/1').expect(200);
-    expect(response.body.id).toBe(1);
-    expect(response.body.name).toBe('Apple iPhone 15');
+    const products = await request(app.getHttpServer()).get('/products').expect(200);
+    const id = products.body[0].id as string;
+
+    const response = await request(app.getHttpServer())
+      .get(`/products/${id}`)
+      .expect(200);
+    expect(response.body.id).toBe(id);
+    expect(response.body).toHaveProperty('name');
   });
 
   it('/products/:id (GET) - not found', () => {
-    return request(app.getHttpServer()).get('/products/999').expect(404);
+    return request(app.getHttpServer())
+      .get('/products/00000000-0000-4000-8000-000000000000')
+      .expect(404);
   });
 
   it('/products?search=iphone (GET)', async () => {

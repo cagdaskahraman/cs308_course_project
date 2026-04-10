@@ -19,7 +19,7 @@
     "migration:generate": "npm run typeorm -- migration:generate",
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
-    "seed:products": "ts-node src/products/run-seed.ts",
+    "seed:products": "npm run seed:db",
     "seed:db": "ts-node --project tsconfig.json src/database/seeds/product-seed.ts"
   },
   "dependencies": {
