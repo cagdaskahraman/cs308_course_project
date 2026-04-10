@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { Review } from '../reviews/entities/review.entity';
+import { ProductDetailResponseDto } from './dto/product-detail-response.dto';
 import { Product } from './entities/product.entity';
 
 @Injectable()
@@ -9,6 +11,8 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
+    @InjectRepository(Review)
+    private readonly reviewRepository: Repository<Review>,
   ) {}
 
   async findAll(options?: {
@@ -54,11 +58,36 @@ export class ProductsService {
     return rows.map((r) => r.category);
   }
 
-  async findOne(id: string): Promise<Product> {
+  async findOne(id: string): Promise<ProductDetailResponseDto> {
     const product = await this.productsRepository.findOne({ where: { id } });
     if (!product) {
       throw new NotFoundException(`Product with id '${id}' not found`);
     }
-    return product;
+
+    const raw = await this.reviewRepository
+      .createQueryBuilder('r')
+      .select('AVG(r.rating)', 'avg')
+      .addSelect('COUNT(r.id)', 'cnt')
+      .where('r.product_id = :productId', { productId: id })
+      .andWhere('r.approved = :approved', { approved: true })
+      .getRawOne<{ avg: string | null; cnt: string }>();
+
+    const reviewCount = Number(raw?.cnt ?? 0);
+    const averageRating =
+      reviewCount === 0 || raw?.avg == null
+        ? null
+        : Math.round(Number(raw.avg) * 100) / 100;
+
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      stockQuantity: product.stockQuantity,
+      category: product.category,
+      imageUrl: product.imageUrl,
+      averageRating,
+      reviewCount,
+    };
   }
 }
