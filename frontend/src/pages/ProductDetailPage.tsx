@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getProductById } from '../services/productService';
 import { getOrCreateCartId, addCartItem } from '../services/cartService';
+import { useToast } from '../context/ToastContext';
 import { formatPrice } from '../utils/formatPrice';
 import type { Product } from '../types/product';
 
@@ -12,6 +13,7 @@ export const ProductDetailPage = (): JSX.Element => {
   const [error, setError] = useState('');
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!id) return;
@@ -32,7 +34,7 @@ export const ProductDetailPage = (): JSX.Element => {
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to add to cart');
+      showToast(e instanceof Error ? e.message : 'Failed to add to cart');
     } finally {
       setAdding(false);
     }
