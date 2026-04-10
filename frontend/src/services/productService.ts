@@ -45,6 +45,11 @@ export const getProducts = async (category?: string | null): Promise<Product[]> 
   }));
 };
 
+export const getProductById = async (id: string): Promise<Product> => {
+  const product = await fetchJson<Product>(`${apiBaseUrl}/products/${id}`);
+  return { ...product, imageUrl: toAbsoluteImageUrl(product.imageUrl) };
+};
+
 export const getCategories = async (): Promise<string[]> => {
   return fetchJson<string[]>(`${apiBaseUrl}/products/categories`);
 };
