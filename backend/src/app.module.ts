@@ -6,6 +6,7 @@ import { getTypeOrmModuleOptions } from './config/database.config';
 import { HelloModule } from './hello/hello.module';
 import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ProductsModule } from './products/products.module';
     ProductsModule,
     OrdersModule,
     CartModule,
+    ReviewsModule,
   ],
 })
 export class AppModule {}
