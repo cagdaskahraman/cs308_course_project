@@ -26,9 +26,18 @@ export class CreateUsersAndReviews1744600000000 implements MigrationInterface {
         CONSTRAINT "FK_reviews_user" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT
       )
     `);
+
+    await queryRunner.query(`
+      CREATE INDEX "IDX_reviews_product_id" ON "reviews" ("product_id")
+    `);
+    await queryRunner.query(`
+      CREATE INDEX "IDX_reviews_approved" ON "reviews" ("approved")
+    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_reviews_approved"`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_reviews_product_id"`);
     await queryRunner.query(`DROP TABLE "reviews"`);
     await queryRunner.query(`DROP TABLE "users"`);
   }

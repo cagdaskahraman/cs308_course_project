@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -11,6 +12,8 @@ import { Product } from '../../products/entities/product.entity';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('reviews')
+@Index('IDX_reviews_product_id', ['product'])
+@Index('IDX_reviews_approved', ['approved'])
 export class Review {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
