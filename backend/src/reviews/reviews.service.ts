@@ -3,12 +3,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 
 import { Product } from '../products/entities/product.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { ProductReviewResponseDto } from './dto/product-review-response.dto';
 import { Review } from './entities/review.entity';
+import { maskEmail } from './utils/mask-email';
 
 @Injectable()
 export class ReviewsService {
@@ -47,5 +49,47 @@ export class ReviewsService {
     });
 
     return this.reviewRepository.save(review);
+  }
+
+  async findByProduct(
+    productId: string,
+    approvedOnly: boolean,
+  ): Promise<ProductReviewResponseDto[]> {
+    const productExists = await this.productRepository.exists({
+      where: { id: productId },
+    });
+    if (!productExists) {
+      throw new NotFoundException(`Product not found: ${productId}`);
+    }
+
+    const where: FindOptionsWhere<Review> = {
+      product: { id: productId },
+    };
+    if (approvedOnly) {
+      where.approved = true;
+    }
+
+    const reviews = await this.reviewRepository.find({
+      where,
+      relations: { user: true },
+      order: { createdAt: 'DESC' },
+    });
+
+    return reviews.map((review) => this.toProductReviewResponse(review));
+  }
+
+  private toProductReviewResponse(review: Review): ProductReviewResponseDto {
+    const user = review.user;
+    return {
+      id: review.id,
+      rating: review.rating,
+      comment: review.comment,
+      approved: review.approved,
+      createdAt: review.createdAt.toISOString(),
+      author: {
+        maskedEmail: maskEmail(user.email),
+        displayName: user.displayName,
+      },
+    };
   }
 }
