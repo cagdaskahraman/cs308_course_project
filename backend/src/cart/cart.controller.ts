@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -25,11 +26,18 @@ import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { CartService } from './cart.service';
 import { Cart } from './entities/cart.entity';
 
-// Cart controller
 @ApiTags('Cart')
 @Controller('cart')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new empty cart' })
+  @ApiCreatedResponse({ description: 'Cart created.', type: Cart })
+  createCart(): Promise<Cart> {
+    return this.cartService.create();
+  }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get cart by id' })
@@ -67,5 +75,18 @@ export class CartController {
     @Body() body: UpdateCartItemDto,
   ): Promise<Cart> {
     return this.cartService.updateItem(cartId, itemId, body);
+  }
+
+  @Delete(':cartId/items/:itemId')
+  @ApiOperation({ summary: 'Remove item from cart' })
+  @ApiParam({ name: 'cartId', format: 'uuid' })
+  @ApiParam({ name: 'itemId', format: 'uuid' })
+  @ApiOkResponse({ description: 'Cart item removed.' })
+  @ApiNotFoundResponse({ description: 'Cart or cart item not found.' })
+  removeItem(
+    @Param('cartId', new ParseUUIDPipe({ version: '4' })) cartId: string,
+    @Param('itemId', new ParseUUIDPipe({ version: '4' })) itemId: string,
+  ): Promise<{ cart: Cart; totalPrice: number }> {
+    return this.cartService.removeItem(cartId, itemId);
   }
 }

@@ -1,14 +1,26 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsOptional,
+  IsUUID,
   ValidateNested,
 } from 'class-validator';
 
 import { CheckoutItemDto } from './checkout-item.dto';
 
 export class CheckoutDto {
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'If provided, all items in this cart will be removed after a successful checkout.',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: 'Cart ID must be a valid UUID v4.' })
+  cartId?: string;
+
   @ApiProperty({
     type: () => [CheckoutItemDto],
     isArray: true,
