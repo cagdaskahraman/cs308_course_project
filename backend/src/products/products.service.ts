@@ -14,7 +14,7 @@ export class ProductsService {
   async findAll(options?: {
     search?: string;
     category?: string;
-    sortBy?: 'price' | 'popularity';
+    sortBy?: 'price';
     sortOrder?: 'asc' | 'desc';
   }): Promise<Product[]> {
     const qb = this.productsRepository.createQueryBuilder('p');
@@ -35,11 +35,7 @@ export class ProductsService {
 
     if (options?.sortBy) {
       const dir = options.sortOrder === 'desc' ? 'DESC' : 'ASC';
-      if (options.sortBy === 'price') {
-        qb.orderBy('p.price', dir);
-      } else {
-        qb.orderBy('p.stockQuantity', dir);
-      }
+      qb.orderBy('p.price', dir);
     }
 
     return qb.getMany();
