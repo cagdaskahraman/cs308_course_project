@@ -5,6 +5,7 @@ import { CartModule } from './cart/cart.module';
 import { getTypeOrmModuleOptions } from './config/database.config';
 import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { ProductsModule } from './products/products.module';
     ProductsModule,
     OrdersModule,
     CartModule,
+    UsersModule,
   ],
 })
 export class AppModule {}
