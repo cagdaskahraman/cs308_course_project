@@ -33,11 +33,25 @@ const toAbsoluteImageUrl = (imageUrl: string): string => {
   return `${apiBaseUrl}${imageUrl}`;
 };
 
-export const getProducts = async (category?: string | null): Promise<Product[]> => {
+export type ProductQueryParams = {
+  category?: string | null;
+  search?: string;
+  sortBy?: 'price';
+  sortOrder?: 'asc' | 'desc';
+};
+
+export const getProducts = async (params?: ProductQueryParams | string | null): Promise<Product[]> => {
   const url = new URL(`${apiBaseUrl}/products`);
-  if (category) {
-    url.searchParams.append('category', category);
-  }
+
+  const opts: ProductQueryParams = typeof params === 'string' || params === null || params === undefined
+    ? { category: params ?? undefined }
+    : params;
+
+  if (opts.category) url.searchParams.append('category', opts.category);
+  if (opts.search?.trim()) url.searchParams.append('search', opts.search.trim());
+  if (opts.sortBy) url.searchParams.append('sortBy', opts.sortBy);
+  if (opts.sortOrder) url.searchParams.append('sortOrder', opts.sortOrder);
+
   const data = await fetchJson<Product[]>(url.toString());
   return data.map((product) => ({
     ...product,

@@ -5,6 +5,17 @@ import { getOrCreateCartId, addCartItem } from '../services/cartService';
 import { formatPrice } from '../utils/formatPrice';
 import type { Product } from '../types/product';
 
+type SortOption = '' | 'price-asc' | 'price-desc';
+
+function useDebounce(value: string, delay: number): string {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
 export const CatalogPage = (): JSX.Element => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -12,6 +23,10 @@ export const CatalogPage = (): JSX.Element => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [addingId, setAddingId] = useState<string | null>(null);
+
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 300);
+  const [sort, setSort] = useState<SortOption>('');
 
   useEffect(() => {
     void getCategories()
@@ -22,11 +37,20 @@ export const CatalogPage = (): JSX.Element => {
   useEffect(() => {
     setLoading(true);
     setError('');
-    void getProducts(selectedCategory)
+
+    const sortBy = sort === 'price-asc' || sort === 'price-desc' ? 'price' as const : undefined;
+    const sortOrder = sort === 'price-asc' ? 'asc' as const : sort === 'price-desc' ? 'desc' as const : undefined;
+
+    void getProducts({
+      category: selectedCategory,
+      search: debouncedSearch || undefined,
+      sortBy,
+      sortOrder,
+    })
       .then(setProducts)
       .catch((e) => setError(`Could not load products: ${e instanceof Error ? e.message : 'Unexpected error'}`))
       .finally(() => setLoading(false));
-  }, [selectedCategory]);
+  }, [selectedCategory, debouncedSearch, sort]);
 
   const handleAddToCart = async (product: Product) => {
     if (product.stockQuantity <= 0) return;
@@ -104,6 +128,30 @@ export const CatalogPage = (): JSX.Element => {
           </button>
         ))}
       </div>
+
+      <div className="row g-2 mb-4 align-items-center">
+        <div className="col-12 col-md-8">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Search products..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+        <div className="col-12 col-md-4">
+          <select
+            className="form-select"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortOption)}
+          >
+            <option value="">Sort by</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+          </select>
+        </div>
+      </div>
+
       {content}
     </>
   );
