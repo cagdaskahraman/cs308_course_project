@@ -1,4 +1,4 @@
-import { Product } from './product.type';
+import { LegacyProductSeed } from './types/legacy-product-seed.type';
 
 type Category = 'Phone' | 'Laptop' | 'Headphone' | 'Accessory' | 'Tablet';
 
@@ -57,10 +57,10 @@ const productSeedInput: ProductSeedInput[] = [
   { name: 'Amazon Fire Max 11', model: 'K3R6AT', category: 'Tablet', price: 8999, quantityInStock: 13, popularity: 64, distributorInfo: 'Amazon Turkey Distributor', imageUrl: 'https://images.unsplash.com/photo-1573894996493-16b4f3ad2fbb?auto=format&fit=crop&w=800&q=80', description: 'Entry-level tablet suitable for basic media use.' },
 ];
 
-const PRODUCT_CURRENCY: Product['currency'] = 'TRY';
+const PRODUCT_CURRENCY: LegacyProductSeed['currency'] = 'TRY';
 const PRODUCT_WARRANTY = '2 years official warranty';
 
-export const productsSeed: Product[] = productSeedInput.map((item, index) => ({
+export const productsSeed: LegacyProductSeed[] = productSeedInput.map((item, index) => ({
   id: index + 1,
   name: item.name,
   model: item.model,
@@ -76,7 +76,7 @@ export const productsSeed: Product[] = productSeedInput.map((item, index) => ({
   imageUrl: item.imageUrl,
 }));
 
-export function validateProductsSeed(products: Product[]): void {
+export function validateProductsSeed(products: LegacyProductSeed[]): void {
   const serials = new Set<string>();
 
   products.forEach((product) => {
