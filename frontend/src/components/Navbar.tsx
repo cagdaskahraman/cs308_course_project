@@ -32,6 +32,8 @@ export const Navbar = (): JSX.Element => {
           <ul className="navbar-nav ms-auto gap-1">
             {navLink('/', 'Catalog')}
             {navLink('/cart', 'Cart')}
+            {navLink('/login', 'Login')}
+            {navLink('/register', 'Register')}
           </ul>
         </div>
       </div>
