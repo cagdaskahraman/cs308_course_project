@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 import {
   getPendingReviews,
   approveReview,
@@ -19,6 +20,7 @@ function getUserRole(): string | null {
 }
 
 export const AdminReviewsPage = (): JSX.Element => {
+  const { showToast } = useToast();
   const [reviews, setReviews] = useState<PendingReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,24 +40,36 @@ export const AdminReviewsPage = (): JSX.Element => {
   }, [role]);
 
   const handleApprove = async (id: string) => {
+    const reviewToUpdate = reviews.find(r => r.id === id);
+    if (!reviewToUpdate) return;
+    
     setBusyId(id);
+    setReviews((prev) => prev.filter((r) => r.id !== id));
+    
     try {
       await approveReview(id);
-      setReviews((prev) => prev.filter((r) => r.id !== id));
+      showToast('Review approved successfully!', 'success');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Approve failed');
+      setReviews((prev) => [reviewToUpdate, ...prev]);
+      showToast(e instanceof Error ? e.message : 'Approve failed', 'danger');
     } finally {
       setBusyId(null);
     }
   };
 
   const handleReject = async (id: string) => {
+    const reviewToUpdate = reviews.find(r => r.id === id);
+    if (!reviewToUpdate) return;
+    
     setBusyId(id);
+    setReviews((prev) => prev.filter((r) => r.id !== id));
+    
     try {
       await rejectReview(id);
-      setReviews((prev) => prev.filter((r) => r.id !== id));
+      showToast('Review rejected successfully.', 'success');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Reject failed');
+      setReviews((prev) => [reviewToUpdate, ...prev]);
+      showToast(e instanceof Error ? e.message : 'Reject failed', 'danger');
     } finally {
       setBusyId(null);
     }
@@ -78,14 +92,30 @@ export const AdminReviewsPage = (): JSX.Element => {
     );
   }
 
-  if (loading) return <p className="text-center fs-5 mt-5">Loading pending reviews...</p>;
+  if (loading) {
+    return (
+      <div className="text-center mt-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-3 fs-5 text-secondary">Loading pending reviews...</p>
+      </div>
+    );
+  }
+  
   if (error) return <div className="alert alert-danger mt-4">{error}</div>;
 
   return (
     <>
       <h2 className="fw-bold mb-4">Review Moderation</h2>
       {reviews.length === 0 ? (
-        <p className="text-secondary">No pending reviews at the moment.</p>
+        <div className="card text-center p-5 shadow-sm border-0 bg-light mt-4">
+          <div className="card-body">
+            <span style={{ fontSize: '4rem' }}>🎉</span>
+            <h4 className="mt-3 text-success fw-semibold">All caught up!</h4>
+            <p className="text-muted mb-0 mt-2 fs-5">There are no pending reviews at the moment.</p>
+          </div>
+        </div>
       ) : (
         <div className="list-group">
           {reviews.map((r) => (
