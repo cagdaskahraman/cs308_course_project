@@ -1,14 +1,20 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
+import { useAuth } from '../context/AuthContext';
 import { login } from '../services/authService';
+import { getSavedCartId, mergeGuestCartWithUser } from '../services/cartService';
 
 export const LoginPage = (): JSX.Element => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const next = new URLSearchParams(location.search).get('next') ?? '/';
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -16,9 +22,13 @@ export const LoginPage = (): JSX.Element => {
     setLoading(true);
     try {
       const response = await login({ email, password });
-      localStorage.setItem('token', response.accessToken);
-      localStorage.setItem('authUser', JSON.stringify(response.user));
-      navigate('/');
+      signIn(response.accessToken, response.user);
+      try {
+        await mergeGuestCartWithUser(response.accessToken, getSavedCartId());
+      } catch {
+        // Non-fatal: user still logged in even if cart merge fails.
+      }
+      navigate(next, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

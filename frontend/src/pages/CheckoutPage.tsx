@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { getSavedCartId, getCart, type CartResponse } from '../services/cartService';
 import { checkout } from '../services/orderService';
 import { formatPrice } from '../utils/formatPrice';
 
 export const CheckoutPage = (): JSX.Element => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [cartData, setCartData] = useState<CartResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login?next=/checkout', { replace: true });
+      return;
+    }
     const cartId = getSavedCartId();
     if (!cartId) {
       setError('');
@@ -34,7 +40,7 @@ export const CheckoutPage = (): JSX.Element => {
         );
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [isAuthenticated, navigate]);
 
   const handleCheckout = async () => {
     if (!cartData || cartData.cart.items.length === 0) return;

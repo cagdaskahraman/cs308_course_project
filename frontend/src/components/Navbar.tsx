@@ -1,7 +1,11 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+
+import { useAuth } from '../context/AuthContext';
 
 export const Navbar = (): JSX.Element => {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, signOut } = useAuth();
 
   const navLink = (to: string, label: string) => (
     <li className="nav-item" key={to}>
@@ -13,6 +17,11 @@ export const Navbar = (): JSX.Element => {
       </Link>
     </li>
   );
+
+  const handleLogout = () => {
+    signOut();
+    navigate('/');
+  };
 
   return (
     <nav className="navbar navbar-expand-md bg-white border-bottom shadow-sm sticky-top">
@@ -29,11 +38,33 @@ export const Navbar = (): JSX.Element => {
           <span className="navbar-toggler-icon" />
         </button>
         <div className="collapse navbar-collapse" id="mainNav">
-          <ul className="navbar-nav ms-auto gap-1">
+          <ul className="navbar-nav ms-auto gap-1 align-items-md-center">
             {navLink('/', 'Catalog')}
             {navLink('/cart', 'Cart')}
-            {navLink('/login', 'Login')}
-            {navLink('/register', 'Register')}
+            {user?.role === 'product_manager' && navLink('/admin/reviews', 'Moderation')}
+            {isAuthenticated ? (
+              <>
+                <li className="nav-item">
+                  <span className="nav-link text-secondary small">
+                    {user?.email}
+                  </span>
+                </li>
+                <li className="nav-item">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary ms-md-2"
+                    onClick={handleLogout}
+                  >
+                    Log out
+                  </button>
+                </li>
+              </>
+            ) : (
+              <>
+                {navLink('/login', 'Login')}
+                {navLink('/register', 'Register')}
+              </>
+            )}
           </ul>
         </div>
       </div>

@@ -9,9 +9,11 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -19,9 +21,13 @@ import {
   ApiOperation,
   ApiParam,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
+import { CurrentUser } from '../common/auth/current-user.decorator';
+import { AuthUserPayload, JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
+import { MergeCartDto } from './dto/merge-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { CartService } from './cart.service';
 import { Cart } from './entities/cart.entity';
@@ -37,6 +43,24 @@ export class CartController {
   @ApiCreatedResponse({ description: 'Cart created.', type: Cart })
   createCart(): Promise<Cart> {
     return this.cartService.create();
+  }
+
+  @Post('merge')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Merge guest cart into the current user cart',
+    description:
+      'Returns the authenticated user cart. If `guestCartId` is provided and belongs to no user, its items are merged in and the guest cart is removed.',
+  })
+  @ApiOkResponse({ description: 'Merged user cart.' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
+  mergeCart(
+    @CurrentUser() user: AuthUserPayload,
+    @Body() body: MergeCartDto,
+  ): Promise<{ cart: Cart; totalPrice: number }> {
+    return this.cartService.mergeForUser(user.sub, body.guestCartId);
   }
 
   @Get(':id')
