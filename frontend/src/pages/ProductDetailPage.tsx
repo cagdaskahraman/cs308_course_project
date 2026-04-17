@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getProductById } from '../services/productService';
 import { getOrCreateCartId, addCartItem } from '../services/cartService';
@@ -44,13 +44,32 @@ export const ProductDetailPage = (): JSX.Element => {
 
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [submitMsg, setSubmitMsg] = useState('');
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const token = localStorage.getItem('token');
+
+  const loadReviews = useCallback(async () => {
+    if (!id) return;
+    setReviewsLoading(true);
+    setReviewsError(null);
+    try {
+      const list = await getApprovedReviews(id);
+      setReviews(list.filter((r) => r.status === 'approved'));
+    } catch (e) {
+      setReviews([]);
+      setReviewsError(
+        e instanceof Error ? e.message : 'Reviews could not be loaded. Check your connection or try again later.',
+      );
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -60,13 +79,11 @@ export const ProductDetailPage = (): JSX.Element => {
       .then(setProduct)
       .catch((e) => setError(e instanceof Error ? e.message : 'Product not found'))
       .finally(() => setLoading(false));
-
-    setReviewsLoading(true);
-    void getApprovedReviews(id)
-      .then(setReviews)
-      .catch(() => { /* review endpoint may not be deployed yet */ })
-      .finally(() => setReviewsLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    void loadReviews();
+  }, [loadReviews]);
 
   const handleAdd = async () => {
     if (!product || product.stockQuantity <= 0) return;
@@ -87,14 +104,15 @@ export const ProductDetailPage = (): JSX.Element => {
     e.preventDefault();
     if (!id || !token) return;
     setSubmitting(true);
-    setSubmitMsg('');
+    setSubmitError(null);
+    setSubmitSuccess(null);
     try {
       await submitReview({ productId: id, rating, comment }, token);
-      setSubmitMsg('Review submitted! It will appear after approval.');
+      setSubmitSuccess('Review submitted. It will show here after a moderator approves it.');
       setComment('');
       setRating(5);
-    } catch {
-      setSubmitMsg('Failed to submit review. Please try again.');
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Could not submit your review. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -137,12 +155,27 @@ export const ProductDetailPage = (): JSX.Element => {
       </div>
 
       <hr className="my-4" />
-      <h4>Reviews</h4>
+      <h4 className="mb-1">Reviews</h4>
+      <p className="text-muted small mb-3">Only approved reviews are listed below.</p>
 
       {reviewsLoading ? (
-        <p className="text-secondary">Loading reviews...</p>
+        <div className="d-flex align-items-center gap-2 text-secondary mb-4" role="status" aria-live="polite">
+          <span className="spinner-border spinner-border-sm" aria-hidden="true" />
+          <span>Loading reviews…</span>
+        </div>
+      ) : reviewsError ? (
+        <div className="alert alert-warning d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-4">
+          <span>{reviewsError}</span>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-dark flex-shrink-0"
+            onClick={() => void loadReviews()}
+          >
+            Retry
+          </button>
+        </div>
       ) : reviews.length === 0 ? (
-        <p className="text-secondary">No reviews yet.</p>
+        <p className="text-secondary mb-4">No approved reviews yet.</p>
       ) : (
         <div className="list-group mb-4">
           {reviews.map((r) => (
@@ -157,13 +190,23 @@ export const ProductDetailPage = (): JSX.Element => {
         </div>
       )}
 
-      <h5 className="mt-3">Write a Review</h5>
+      <h5 className="mt-3">Write a review</h5>
       {!token ? (
         <div className="alert alert-info">
-          Please <Link to="/login">log in</Link> to submit a review.
+          <Link to="/login">Log in</Link> to submit a review. Submitted reviews are moderated before they appear above.
         </div>
       ) : (
         <form onSubmit={(e) => void handleSubmitReview(e)} className="mb-4">
+          {submitError && (
+            <div className="alert alert-danger" role="alert">
+              {submitError}
+            </div>
+          )}
+          {submitSuccess && (
+            <div className="alert alert-success" role="status">
+              {submitSuccess}
+            </div>
+          )}
           <div className="mb-3">
             <label className="form-label">Rating</label>
             <div><StarInput value={rating} onChange={setRating} /></div>
@@ -180,13 +223,8 @@ export const ProductDetailPage = (): JSX.Element => {
             />
           </div>
           <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Submitting...' : 'Submit Review'}
+            {submitting ? 'Submitting…' : 'Submit review'}
           </button>
-          {submitMsg && (
-            <p className={`mt-2 ${submitMsg.includes('Failed') ? 'text-danger' : 'text-success'}`}>
-              {submitMsg}
-            </p>
-          )}
         </form>
       )}
     </>
