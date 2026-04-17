@@ -3,11 +3,13 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsEmail,
   IsOptional,
   IsUUID,
   ValidateNested,
 } from 'class-validator';
 
+import { PaymentDetailsDto } from '../../payments/dto/payment-details.dto';
 import { CheckoutItemDto } from './checkout-item.dto';
 
 export class CheckoutDto {
@@ -47,5 +49,24 @@ export class CheckoutDto {
   @ValidateNested({ each: true })
   @Type(() => CheckoutItemDto)
   items!: CheckoutItemDto[];
+
+  @ApiPropertyOptional({
+    type: () => PaymentDetailsDto,
+    description:
+      'Mock card details authorized against a fake gateway before the order is persisted. Required in production but kept optional in the DTO so legacy tests keep passing.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PaymentDetailsDto)
+  payment?: PaymentDetailsDto;
+
+  @ApiPropertyOptional({
+    description:
+      'Overrides the authenticated user email for the invoice. Defaults to the caller email.',
+    example: 'buyer@example.com',
+  })
+  @IsOptional()
+  @IsEmail({}, { message: 'billingEmail must be a valid email' })
+  billingEmail?: string;
 }
 
