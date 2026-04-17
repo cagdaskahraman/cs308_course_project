@@ -169,4 +169,67 @@ export class CartService {
 
     return { cart, totalPrice };
   }
+
+  /**
+   * Claim the current user's cart. If a `guestCartId` is provided, merge
+   * its items into the user's cart (summing quantities), then delete the
+   * guest cart. Returns the user's cart with its updated contents.
+   */
+  async mergeForUser(
+    userId: string,
+    guestCartId?: string,
+  ): Promise<{ cart: Cart; totalPrice: number }> {
+    return this.dataSource.transaction(async (manager) => {
+      let userCart = await manager.findOne(Cart, {
+        where: { userId },
+        relations: { items: { product: true } },
+      });
+      if (!userCart) {
+        userCart = manager.create(Cart, { userId });
+        userCart = await manager.save(Cart, userCart);
+        userCart.items = [];
+      }
+
+      if (guestCartId && guestCartId !== userCart.id) {
+        const guestCart = await manager.findOne(Cart, {
+          where: { id: guestCartId },
+          relations: { items: { product: true } },
+        });
+
+        if (guestCart && guestCart.userId === null) {
+          for (const guestItem of guestCart.items) {
+            const existing = userCart.items.find(
+              (i) => i.product.id === guestItem.product.id,
+            );
+            const combined =
+              (existing?.quantity ?? 0) + guestItem.quantity;
+            const capped = Math.min(combined, guestItem.product.stockQuantity);
+
+            if (existing) {
+              existing.quantity = capped;
+              await manager.save(CartItem, existing);
+            } else {
+              const newItem = manager.create(CartItem, {
+                quantity: capped,
+                cart: userCart,
+                product: guestItem.product,
+              });
+              await manager.save(CartItem, newItem);
+            }
+          }
+          await manager.remove(Cart, guestCart);
+        }
+      }
+
+      const refreshed = await manager.findOneOrFail(Cart, {
+        where: { id: userCart.id },
+        relations: { items: { product: true } },
+      });
+      const totalPrice = refreshed.items.reduce(
+        (sum, item) => sum + item.quantity * item.product.price,
+        0,
+      );
+      return { cart: refreshed, totalPrice };
+    });
+  }
 }

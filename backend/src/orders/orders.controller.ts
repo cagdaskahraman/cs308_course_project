@@ -8,9 +8,11 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -18,8 +20,10 @@ import {
   ApiOperation,
   ApiParam,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
+import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Order } from './entities/order.entity';
@@ -32,10 +36,12 @@ export class OrdersController {
 
   @Post('checkout')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Checkout',
     description:
-      'Places an order: validates stock, decreases product stock, persists order and line items in one transaction.',
+      'Places an order for the authenticated user: validates stock, decreases product stock, persists order and line items in one transaction.',
   })
   @ApiCreatedResponse({
     description: 'Order created; stock updated.',
@@ -43,6 +49,9 @@ export class OrdersController {
   })
   @ApiBadRequestResponse({
     description: 'Validation failed or insufficient stock for a product.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Missing or invalid bearer token — login required.',
   })
   @ApiNotFoundResponse({
     description: 'A product id in the cart does not exist.',

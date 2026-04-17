@@ -1,3 +1,5 @@
+import { authHeader } from './authService';
+
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3000';
 
 export type OrderItem = {
@@ -33,7 +35,7 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
 export async function checkout(payload: CheckoutPayload): Promise<Order> {
   return request<Order>(`${apiBaseUrl}/orders/checkout`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: JSON.stringify(payload),
   });
 }
