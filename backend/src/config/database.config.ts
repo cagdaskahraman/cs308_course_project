@@ -6,6 +6,7 @@ import { Cart } from '../cart/entities/cart.entity';
 import { OrderItem } from '../orders/entities/order-item.entity';
 import { Order } from '../orders/entities/order.entity';
 import { Product } from '../products/entities/product.entity';
+import { Review } from '../reviews/entities/review.entity';
 import { User } from '../users/entities/user.entity';
 
 export function getDatabaseEnv(): {
@@ -29,7 +30,7 @@ export function getTypeOrmModuleOptions(): TypeOrmModuleOptions {
   return {
     type: 'postgres',
     ...getDatabaseEnv(),
-    entities: [Product, Order, OrderItem, Cart, CartItem, User],
+    entities: [Product, Order, OrderItem, Cart, CartItem, User, Review],
     synchronize: false,
     logging: process.env.TYPEORM_LOGGING === 'true',
   };
