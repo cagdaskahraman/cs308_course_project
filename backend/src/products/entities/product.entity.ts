@@ -36,5 +36,8 @@ export class Product {
 
   @Column({ name: 'distributor_info', type: 'text', nullable: true })
   distributorInfo?: string | null;
+
+  @Column({ type: 'int', default: 0 })
+  popularity!: number;
 }
 
