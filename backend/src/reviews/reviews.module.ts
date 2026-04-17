@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Product } from '../products/entities/product.entity';
 import { User } from '../users/entities/user.entity';
 import { Review } from './entities/review.entity';
+import { ProductManagerGuard } from './guards/product-manager.guard';
 import { ReviewsController } from './reviews.controller';
 import { ReviewsService } from './reviews.service';
 
@@ -17,7 +18,7 @@ import { ReviewsService } from './reviews.service';
     }),
   ],
   controllers: [ReviewsController],
-  providers: [ReviewsService],
+  providers: [ReviewsService, ProductManagerGuard],
   exports: [ReviewsService, TypeOrmModule],
 })
 export class ReviewsModule {}

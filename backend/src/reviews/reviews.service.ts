@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -51,5 +55,41 @@ export class ReviewsService {
       relations: { product: false, user: false },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async listForModeration(status: ReviewStatus): Promise<Review[]> {
+    return this.reviewsRepository.find({
+      where: { status },
+      relations: { product: false, user: false },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  async approve(id: string): Promise<Review> {
+    const review = await this.reviewsRepository.findOne({ where: { id } });
+    if (!review) {
+      throw new NotFoundException(`Review not found: ${id}`);
+    }
+    if (review.status !== ReviewStatus.PENDING) {
+      throw new ConflictException(
+        `Review ${id} is not pending (current: ${review.status})`,
+      );
+    }
+    review.status = ReviewStatus.APPROVED;
+    return this.reviewsRepository.save(review);
+  }
+
+  async reject(id: string): Promise<Review> {
+    const review = await this.reviewsRepository.findOne({ where: { id } });
+    if (!review) {
+      throw new NotFoundException(`Review not found: ${id}`);
+    }
+    if (review.status !== ReviewStatus.PENDING) {
+      throw new ConflictException(
+        `Review ${id} is not pending (current: ${review.status})`,
+      );
+    }
+    review.status = ReviewStatus.REJECTED;
+    return this.reviewsRepository.save(review);
   }
 }
