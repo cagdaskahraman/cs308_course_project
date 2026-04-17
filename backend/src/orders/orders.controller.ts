@@ -23,7 +23,8 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
+import { CurrentUser } from '../common/auth/current-user.decorator';
+import { AuthUserPayload, JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Order } from './entities/order.entity';
@@ -56,8 +57,11 @@ export class OrdersController {
   @ApiNotFoundResponse({
     description: 'A product id in the cart does not exist.',
   })
-  checkout(@Body() body: CheckoutDto): Promise<Order> {
-    return this.ordersService.checkout(body);
+  checkout(
+    @Body() body: CheckoutDto,
+    @CurrentUser() user: AuthUserPayload,
+  ): Promise<Order> {
+    return this.ordersService.checkout(body, { email: user.email });
   }
 
   @Get(':id')

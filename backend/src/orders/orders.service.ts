@@ -9,6 +9,9 @@ import { DataSource, Repository } from 'typeorm';
 
 import { Cart } from '../cart/entities/cart.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
+import { InvoicesService } from '../invoices/invoices.service';
+import { PaymentResultDto } from '../payments/dto/payment-result.dto';
+import { PaymentsService } from '../payments/payments.service';
 import { Product } from '../products/entities/product.entity';
 import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -25,10 +28,17 @@ export class OrdersService {
     private readonly dataSource: DataSource,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+    private readonly paymentsService: PaymentsService,
+    private readonly invoicesService: InvoicesService,
   ) {}
 
-  async checkout(dto: CheckoutDto): Promise<Order> {
-    return this.dataSource.transaction(async (manager) => {
+  async checkout(
+    dto: CheckoutDto,
+    actor?: { email?: string },
+  ): Promise<Order> {
+    const billingEmail = dto.billingEmail ?? actor?.email ?? 'anonymous@electrostore.local';
+
+    const saved = await this.dataSource.transaction(async (manager) => {
       let totalPrice = 0;
       const orderItems: OrderItem[] = [];
 
@@ -61,13 +71,31 @@ export class OrdersService {
         );
       }
 
+      let payment: PaymentResultDto | null = null;
+      if (dto.payment) {
+        payment = this.paymentsService.authorize(totalPrice, dto.payment);
+      }
+
       const order = manager.create(Order, {
         totalPrice,
         status: OrderStatus.Processing,
         items: orderItems,
       });
 
-      const saved = await manager.save(order);
+      const persistedOrder = await manager.save(order);
+
+      if (payment) {
+        const fullOrder = await manager.findOneOrFail(Order, {
+          where: { id: persistedOrder.id },
+          relations: { items: { product: true } },
+        });
+        await this.invoicesService.createForOrder(
+          manager,
+          fullOrder,
+          payment,
+          billingEmail,
+        );
+      }
 
       if (dto.cartId) {
         const cart = await manager.findOne(Cart, {
@@ -80,10 +108,22 @@ export class OrdersService {
       }
 
       return manager.findOneOrFail(Order, {
-        where: { id: saved.id },
+        where: { id: persistedOrder.id },
         relations: { items: { product: true } },
       });
     });
+
+    if (dto.payment) {
+      try {
+        await this.invoicesService.deliverInvoiceForOrder(saved.id);
+      } catch (err) {
+        this.logger.warn(
+          `[Orders] Invoice dispatch failed for order ${saved.id}: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    return saved;
   }
 
   async findOne(id: string): Promise<Order> {

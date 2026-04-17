@@ -51,6 +51,17 @@ vite.config.js
 vite.config.d.ts
 
 # ========================
+# Runtime-generated artefacts
+# ========================
+backend/storage/
+
+# ========================
 # Optional
 # ========================
 *.local
+
+# ========================
+# Local-only scripts (Jira credentials via env; do not commit)
+# ========================
+scripts/jira_clean_cursor_descriptions.py
+scripts/__pycache__/
