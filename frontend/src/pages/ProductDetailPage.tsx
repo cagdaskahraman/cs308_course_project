@@ -5,6 +5,7 @@ import { getOrCreateCartId, addCartItem } from '../services/cartService';
 import { getApprovedReviews, submitReview, type Review } from '../services/reviewService';
 import { useToast } from '../context/ToastContext';
 import { formatPrice } from '../utils/formatPrice';
+import { displayProductMeta } from '../utils/displayProductMeta';
 import type { Product } from '../types/product';
 
 function StarRating({ value }: { value: number }) {
@@ -137,7 +138,22 @@ export const ProductDetailPage = (): JSX.Element => {
           <span className="badge text-bg-dark mb-2">{product.category}</span>
           <h2 className="fw-bold">{product.name}</h2>
           <p className="text-secondary">{product.description}</p>
-          <h3 className="text-primary fw-bold">{formatPrice(product.price)}</h3>
+          <div className="card border-0 bg-light mt-3">
+            <div className="card-body py-3">
+              <h6 className="text-muted text-uppercase small mb-3">Details</h6>
+              <dl className="row mb-0 small">
+                <dt className="col-sm-4 text-secondary">Model</dt>
+                <dd className="col-sm-8 mb-2">{displayProductMeta(product.model)}</dd>
+                <dt className="col-sm-4 text-secondary">Serial number</dt>
+                <dd className="col-sm-8 mb-2">{displayProductMeta(product.serialNumber)}</dd>
+                <dt className="col-sm-4 text-secondary">Warranty</dt>
+                <dd className="col-sm-8 mb-2">{displayProductMeta(product.warrantyStatus)}</dd>
+                <dt className="col-sm-4 text-secondary">Distributor</dt>
+                <dd className="col-sm-8 mb-0">{displayProductMeta(product.distributorInfo)}</dd>
+              </dl>
+            </div>
+          </div>
+          <h3 className="text-primary fw-bold mt-3">{formatPrice(product.price)}</h3>
           <p className={`mt-2 ${product.stockQuantity > 0 ? 'text-success' : 'text-danger'}`}>
             {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
           </p>
