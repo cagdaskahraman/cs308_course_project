@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getProductById } from '../services/productService';
 import { getOrCreateCartId, addCartItem } from '../services/cartService';
 import { getApprovedReviews, submitReview, type Review } from '../services/reviewService';
+import { useToast } from '../context/ToastContext';
 import { formatPrice } from '../utils/formatPrice';
 import type { Product } from '../types/product';
 
@@ -47,6 +48,7 @@ export const ProductDetailPage = (): JSX.Element => {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState('');
+  const { showToast } = useToast();
 
   const token = localStorage.getItem('token');
 
@@ -75,7 +77,7 @@ export const ProductDetailPage = (): JSX.Element => {
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to add to cart');
+      showToast(e instanceof Error ? e.message : 'Failed to add to cart');
     } finally {
       setAdding(false);
     }
