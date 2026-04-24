@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -34,7 +35,7 @@ export class OrdersService {
 
   async checkout(
     dto: CheckoutDto,
-    actor?: { email?: string },
+    actor: { sub: string; email?: string; role?: string },
   ): Promise<Order> {
     const billingEmail = dto.billingEmail ?? actor?.email ?? 'anonymous@electrostore.local';
 
@@ -71,31 +72,30 @@ export class OrdersService {
         );
       }
 
-      let payment: PaymentResultDto | null = null;
-      if (dto.payment) {
-        payment = this.paymentsService.authorize(totalPrice, dto.payment);
-      }
+      const payment: PaymentResultDto = this.paymentsService.authorize(
+        totalPrice,
+        dto.payment,
+      );
 
       const order = manager.create(Order, {
         totalPrice,
         status: OrderStatus.Processing,
+        userId: actor.sub,
         items: orderItems,
       });
 
       const persistedOrder = await manager.save(order);
 
-      if (payment) {
-        const fullOrder = await manager.findOneOrFail(Order, {
-          where: { id: persistedOrder.id },
-          relations: { items: { product: true } },
-        });
-        await this.invoicesService.createForOrder(
-          manager,
-          fullOrder,
-          payment,
-          billingEmail,
-        );
-      }
+      const fullOrder = await manager.findOneOrFail(Order, {
+        where: { id: persistedOrder.id },
+        relations: { items: { product: true } },
+      });
+      await this.invoicesService.createForOrder(
+        manager,
+        fullOrder,
+        payment,
+        billingEmail,
+      );
 
       if (dto.cartId) {
         const cart = await manager.findOne(Cart, {
@@ -113,14 +113,12 @@ export class OrdersService {
       });
     });
 
-    if (dto.payment) {
-      try {
-        await this.invoicesService.deliverInvoiceForOrder(saved.id);
-      } catch (err) {
-        this.logger.warn(
-          `[Orders] Invoice dispatch failed for order ${saved.id}: ${(err as Error).message}`,
-        );
-      }
+    try {
+      await this.invoicesService.deliverInvoiceForOrder(saved.id);
+    } catch (err) {
+      this.logger.warn(
+        `[Orders] Invoice dispatch failed for order ${saved.id}: ${(err as Error).message}`,
+      );
     }
 
     return saved;
@@ -133,6 +131,27 @@ export class OrdersService {
     });
     if (!order) {
       throw new NotFoundException(`Order not found: ${id}`);
+    }
+    return order;
+  }
+
+  async findForCurrentUser(userId: string): Promise<Order[]> {
+    return this.orderRepository.find({
+      where: { userId },
+      relations: { items: { product: true } },
+      order: { orderDate: 'DESC' },
+    });
+  }
+
+  async findOneForUser(
+    id: string,
+    actor: { sub: string; role?: string },
+  ): Promise<Order> {
+    const order = await this.findOne(id);
+    const isStaff =
+      actor.role === 'product_manager' || actor.role === 'admin';
+    if (!isStaff && order.userId !== actor.sub) {
+      throw new ForbiddenException('You are not allowed to access this order');
     }
     return order;
   }

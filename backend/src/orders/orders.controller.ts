@@ -15,6 +15,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -25,6 +26,7 @@ import {
 
 import { CurrentUser } from '../common/auth/current-user.decorator';
 import { AuthUserPayload, JwtAuthGuard } from '../common/auth/jwt-auth.guard';
+import { StaffRoleGuard } from '../common/auth/staff-role.guard';
 import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Order } from './entities/order.entity';
@@ -61,10 +63,32 @@ export class OrdersController {
     @Body() body: CheckoutDto,
     @CurrentUser() user: AuthUserPayload,
   ): Promise<Order> {
-    return this.ordersService.checkout(body, { email: user.email });
+    return this.ordersService.checkout(body, {
+      sub: user.sub,
+      email: user.email,
+      role: user.role,
+    });
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List my orders',
+    description:
+      'Returns all orders placed by the authenticated user, newest first, including line items.',
+  })
+  @ApiOkResponse({ description: 'Orders for the current user.', type: [Order] })
+  @ApiUnauthorizedResponse({
+    description: 'Missing or invalid bearer token — login required.',
+  })
+  listMyOrders(@CurrentUser() user: AuthUserPayload): Promise<Order[]> {
+    return this.ordersService.findForCurrentUser(user.sub);
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get order by id',
     description: 'Returns the order with line items and nested product details.',
@@ -72,13 +96,19 @@ export class OrdersController {
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ description: 'Order found.', type: Order })
   @ApiNotFoundResponse({ description: 'Order does not exist.' })
+  @ApiUnauthorizedResponse({
+    description: 'Missing or invalid bearer token — login required.',
+  })
   getOrderById(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: AuthUserPayload,
   ): Promise<Order> {
-    return this.ordersService.findOne(id);
+    return this.ordersService.findOneForUser(id, user);
   }
 
   @Patch(':id/status')
+  @UseGuards(JwtAuthGuard, StaffRoleGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update order status',
     description:
@@ -92,6 +122,12 @@ export class OrdersController {
   })
   @ApiBadRequestResponse({
     description: 'Invalid status transition for the current order state.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Missing or invalid bearer token — login required.',
+  })
+  @ApiForbiddenResponse({
+    description: 'Only product manager or admin can update statuses.',
   })
   @ApiNotFoundResponse({ description: 'Order does not exist.' })
   updateOrderStatus(

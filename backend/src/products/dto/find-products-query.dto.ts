@@ -12,10 +12,10 @@ export class FindProductsQueryDto {
   @IsString()
   category?: string;
 
-  @ApiPropertyOptional({ enum: ['price'] })
+  @ApiPropertyOptional({ enum: ['price', 'popularity'] })
   @IsOptional()
-  @IsIn(['price'])
-  sortBy?: 'price';
+  @IsIn(['price', 'popularity'])
+  sortBy?: 'price' | 'popularity';
 
   @ApiPropertyOptional({ enum: ['asc', 'desc'] })
   @IsOptional()

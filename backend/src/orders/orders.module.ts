@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
+import { StaffRoleGuard } from '../common/auth/staff-role.guard';
 import { InvoicesModule } from '../invoices/invoices.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { OrderItem } from './entities/order-item.entity';
@@ -21,7 +22,7 @@ import { OrdersService } from './orders.service';
     InvoicesModule,
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, JwtAuthGuard],
+  providers: [OrdersService, JwtAuthGuard, StaffRoleGuard],
   exports: [TypeOrmModule, OrdersService],
 })
 export class OrdersModule {}

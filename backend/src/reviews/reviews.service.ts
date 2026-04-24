@@ -1,11 +1,14 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { OrderItem } from '../orders/entities/order-item.entity';
+import { OrderStatus } from '../orders/entities/order-status.enum';
 import { Product } from '../products/entities/product.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
@@ -21,6 +24,8 @@ export class ReviewsService {
     private readonly productsRepository: Repository<Product>,
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(OrderItem)
+    private readonly orderItemsRepository: Repository<OrderItem>,
   ) {}
 
   async create(userId: string, dto: CreateReviewDto): Promise<Review> {
@@ -34,6 +39,31 @@ export class ReviewsService {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException(`User not found: ${userId}`);
+    }
+
+    const hasPurchased = await this.orderItemsRepository
+      .createQueryBuilder('orderItem')
+      .innerJoin('orderItem.order', 'order')
+      .where('order.user_id = :userId', { userId })
+      .andWhere('orderItem.product_id = :productId', { productId: dto.productId })
+      .andWhere('order.status != :cancelled', {
+        cancelled: OrderStatus.Cancelled,
+      })
+      .getExists();
+
+    if (!hasPurchased) {
+      throw new ForbiddenException(
+        'You can only review products that you have purchased',
+      );
+    }
+
+    const existingReview = await this.reviewsRepository.findOne({
+      where: { user: { id: userId }, product: { id: dto.productId } },
+    });
+    if (existingReview) {
+      throw new ConflictException(
+        'You have already submitted a review for this product',
+      );
     }
 
     const review = this.reviewsRepository.create({

@@ -119,9 +119,30 @@ export const ProductDetailPage = (): JSX.Element => {
     }
   };
 
-  if (loading) return <p className="text-center fs-5 mt-5">Loading...</p>;
-  if (error) return <div className="alert alert-danger mt-4">{error}</div>;
-  if (!product) return <div className="alert alert-warning mt-4">Product not found.</div>;
+  if (loading) {
+    return (
+      <div className="text-center py-5 text-secondary" role="status">
+        <div className="spinner-border text-primary mb-3" aria-hidden />
+        <p className="fs-5 mb-0">Loading product…</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="alert alert-danger mt-4 d-flex align-items-center gap-2" role="alert">
+        <i className="bi bi-exclamation-triangle-fill" aria-hidden />
+        <span>{error}</span>
+      </div>
+    );
+  }
+  if (!product) {
+    return (
+      <div className="alert alert-warning mt-4 d-flex align-items-center gap-2" role="alert">
+        <i className="bi bi-emoji-frown" aria-hidden />
+        <span>Product not found.</span>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -135,43 +156,97 @@ export const ProductDetailPage = (): JSX.Element => {
           />
         </div>
         <div className="col-md-6">
-          <span className="badge text-bg-dark mb-2">{product.category}</span>
+          <span className="badge text-bg-dark mb-2 d-inline-flex align-items-center gap-1">
+            <i className="bi bi-tag-fill" aria-hidden />
+            {product.category}
+          </span>
           <h2 className="fw-bold">{product.name}</h2>
           <p className="text-secondary">{product.description}</p>
           <div className="card border-0 bg-light mt-3">
             <div className="card-body py-3">
-              <h6 className="text-muted text-uppercase small mb-3">Details</h6>
+              <h6 className="text-muted text-uppercase small mb-3 d-inline-flex align-items-center gap-2">
+                <i className="bi bi-info-circle" aria-hidden />
+                Details
+              </h6>
               <dl className="row mb-0 small">
-                <dt className="col-sm-4 text-secondary">Model</dt>
+                <dt className="col-sm-4 text-secondary d-inline-flex align-items-center gap-1">
+                  <i className="bi bi-hash" aria-hidden />
+                  Product ID
+                </dt>
+                <dd className="col-sm-8 mb-2">{product.id}</dd>
+                <dt className="col-sm-4 text-secondary d-inline-flex align-items-center gap-1">
+                  <i className="bi bi-cpu" aria-hidden />
+                  Model
+                </dt>
                 <dd className="col-sm-8 mb-2">{displayProductMeta(product.model)}</dd>
-                <dt className="col-sm-4 text-secondary">Serial number</dt>
+                <dt className="col-sm-4 text-secondary d-inline-flex align-items-center gap-1">
+                  <i className="bi bi-upc-scan" aria-hidden />
+                  Serial number
+                </dt>
                 <dd className="col-sm-8 mb-2">{displayProductMeta(product.serialNumber)}</dd>
-                <dt className="col-sm-4 text-secondary">Warranty</dt>
+                <dt className="col-sm-4 text-secondary d-inline-flex align-items-center gap-1">
+                  <i className="bi bi-box-seam" aria-hidden />
+                  Quantity in stock
+                </dt>
+                <dd className="col-sm-8 mb-2">{product.stockQuantity}</dd>
+                <dt className="col-sm-4 text-secondary d-inline-flex align-items-center gap-1">
+                  <i className="bi bi-shield-check" aria-hidden />
+                  Warranty
+                </dt>
                 <dd className="col-sm-8 mb-2">{displayProductMeta(product.warrantyStatus)}</dd>
-                <dt className="col-sm-4 text-secondary">Distributor</dt>
+                <dt className="col-sm-4 text-secondary d-inline-flex align-items-center gap-1">
+                  <i className="bi bi-building" aria-hidden />
+                  Distributor
+                </dt>
                 <dd className="col-sm-8 mb-0">{displayProductMeta(product.distributorInfo)}</dd>
               </dl>
             </div>
           </div>
-          <h3 className="text-primary fw-bold mt-3">{formatPrice(product.price)}</h3>
-          <p className={`mt-2 ${product.stockQuantity > 0 ? 'text-success' : 'text-danger'}`}>
+          <h3 className="text-primary fw-bold mt-3 d-inline-flex align-items-center gap-2">
+            <i className="bi bi-currency-exchange" aria-hidden />
+            {formatPrice(product.price)}
+          </h3>
+          <p className={`mt-2 d-inline-flex align-items-center gap-2 fw-medium ${product.stockQuantity > 0 ? 'text-success' : 'text-danger'}`}>
+            <i className={`bi ${product.stockQuantity > 0 ? 'bi-check-circle' : 'bi-x-circle'}`} aria-hidden />
             {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
           </p>
-          <div className="d-flex gap-2 mt-3">
+          <div className="d-flex flex-wrap gap-2 mt-3">
             <button
-              className="btn btn-primary"
+              type="button"
+              className="btn btn-primary d-inline-flex align-items-center gap-2"
               disabled={product.stockQuantity <= 0 || adding}
               onClick={() => void handleAdd()}
             >
-              {adding ? 'Adding...' : added ? 'Added!' : 'Add to Cart'}
+              {adding ? (
+                <>
+                  <span className="spinner-border spinner-border-sm" aria-hidden />
+                  Adding…
+                </>
+              ) : added ? (
+                <>
+                  <i className="bi bi-check-lg" aria-hidden />
+                  Added
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-cart-plus" aria-hidden />
+                  Add to cart
+                </>
+              )}
             </button>
-            <Link to="/" className="btn btn-outline-secondary">Back to Catalog</Link>
+            <Link to="/" className="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+              <i className="bi bi-arrow-left" aria-hidden />
+              Back to catalog
+            </Link>
           </div>
         </div>
       </div>
 
       <hr className="my-4" />
-      <h4 className="mb-1">Reviews</h4>
+      <h4 className="mb-1 d-inline-flex align-items-center gap-2">
+        <i className="bi bi-chat-square-text text-primary" aria-hidden />
+        Reviews
+      </h4>
       <p className="text-muted small mb-3">Only approved reviews are listed below.</p>
 
       {reviewsLoading ? (
@@ -184,9 +259,10 @@ export const ProductDetailPage = (): JSX.Element => {
           <span>{reviewsError}</span>
           <button
             type="button"
-            className="btn btn-sm btn-outline-dark flex-shrink-0"
+            className="btn btn-sm btn-outline-dark flex-shrink-0 d-inline-flex align-items-center gap-1"
             onClick={() => void loadReviews()}
           >
+            <i className="bi bi-arrow-clockwise" aria-hidden />
             Retry
           </button>
         </div>
@@ -206,10 +282,16 @@ export const ProductDetailPage = (): JSX.Element => {
         </div>
       )}
 
-      <h5 className="mt-3">Write a review</h5>
+      <h5 className="mt-3 d-inline-flex align-items-center gap-2">
+        <i className="bi bi-pencil-square" aria-hidden />
+        Write a review
+      </h5>
       {!token ? (
-        <div className="alert alert-info">
-          <Link to="/login">Log in</Link> to submit a review. Submitted reviews are moderated before they appear above.
+        <div className="alert alert-info d-flex align-items-start gap-2">
+          <i className="bi bi-info-circle mt-1" aria-hidden />
+          <span>
+            <Link to="/login">Log in</Link> to submit a review. Submitted reviews are moderated before they appear above.
+          </span>
         </div>
       ) : (
         <form onSubmit={(e) => void handleSubmitReview(e)} className="mb-4">
@@ -238,8 +320,18 @@ export const ProductDetailPage = (): JSX.Element => {
               required
             />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Submitting…' : 'Submit review'}
+          <button type="submit" className="btn btn-primary d-inline-flex align-items-center gap-2" disabled={submitting}>
+            {submitting ? (
+              <>
+                <span className="spinner-border spinner-border-sm" aria-hidden />
+                Submitting…
+              </>
+            ) : (
+              <>
+                <i className="bi bi-send-fill" aria-hidden />
+                Submit review
+              </>
+            )}
           </button>
         </form>
       )}

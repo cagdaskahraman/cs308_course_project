@@ -5,15 +5,21 @@ import {
   Param,
   ParseUUIDPipe,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiProduces,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { CurrentUser } from '../common/auth/current-user.decorator';
+import { AuthUserPayload, JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 import { InvoiceDto } from './dto/invoice.dto';
 import { InvoicesService } from './invoices.service';
 
@@ -28,6 +34,8 @@ export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
   @Get('orders/:orderId/invoice')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Fetch the invoice issued for an order',
     description:
@@ -35,14 +43,23 @@ export class InvoicesController {
   })
   @ApiParam({ name: 'orderId', format: 'uuid' })
   @ApiOkResponse({ type: InvoiceDto })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
+  @ApiForbiddenResponse({
+    description: 'Only the buyer, product manager, or admin can access this invoice.',
+  })
   @ApiNotFoundResponse({ description: 'No invoice exists for this order.' })
   getByOrderId(
     @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
+    @CurrentUser() user: AuthUserPayload,
   ): Promise<InvoiceDto> {
-    return this.invoicesService.getByOrderId(orderId);
+    return this.invoicesService
+      .assertOrderAccess(orderId, user)
+      .then(() => this.invoicesService.getByOrderId(orderId));
   }
 
   @Get('orders/:orderId/invoice.pdf')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Download the invoice PDF for an order',
     description: 'Renders the persisted invoice as a PDF attachment.',
@@ -50,10 +67,16 @@ export class InvoicesController {
   @ApiParam({ name: 'orderId', format: 'uuid' })
   @ApiProduces('application/pdf')
   @Header('Content-Type', 'application/pdf')
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
+  @ApiForbiddenResponse({
+    description: 'Only the buyer, product manager, or admin can access this invoice.',
+  })
   async downloadPdf(
     @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
+    @CurrentUser() user: AuthUserPayload,
     @Res() res: PdfResponse,
   ): Promise<void> {
+    await this.invoicesService.assertOrderAccess(orderId, user);
     const { dto, pdf } = await this.invoicesService.renderPdfByOrderId(orderId);
     res.setHeader(
       'Content-Disposition',
@@ -64,13 +87,22 @@ export class InvoicesController {
   }
 
   @Get('invoices/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Fetch invoice by id' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: InvoiceDto })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
+  @ApiForbiddenResponse({
+    description: 'Only the buyer, product manager, or admin can access this invoice.',
+  })
   @ApiNotFoundResponse({ description: 'Invoice does not exist.' })
   getById(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: AuthUserPayload,
   ): Promise<InvoiceDto> {
-    return this.invoicesService.getById(id);
+    return this.invoicesService
+      .assertInvoiceAccess(id, user)
+      .then(() => this.invoicesService.getById(id));
   }
 }

@@ -33,7 +33,8 @@ async function bootstrap(): Promise<void> {
   SwaggerModule.setup('api', app, document);
 
   app.enableCors({
-    origin: /^http:\/\/localhost:\d+$/,
+    origin:
+      /^http:\/\/(localhost|127\.0\.0\.1|\[::1\]):\d+$/,
   });
 
   app.useStaticAssets(join(__dirname, '..', '..', 'assets'), {

@@ -50,15 +50,14 @@ export class CheckoutDto {
   @Type(() => CheckoutItemDto)
   items!: CheckoutItemDto[];
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: () => PaymentDetailsDto,
     description:
-      'Mock card details authorized against a fake gateway before the order is persisted. Required in production but kept optional in the DTO so legacy tests keep passing.',
+      'Mock card details authorized against a fake gateway before the order is persisted.',
   })
-  @IsOptional()
   @ValidateNested()
   @Type(() => PaymentDetailsDto)
-  payment?: PaymentDetailsDto;
+  payment!: PaymentDetailsDto;
 
   @ApiPropertyOptional({
     description:

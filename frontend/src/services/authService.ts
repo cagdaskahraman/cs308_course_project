@@ -1,6 +1,6 @@
-const apiBaseUrl =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
-  'http://localhost:3000';
+import { API_BASE_URL } from '../config/apiBase';
+
+const apiBaseUrl = API_BASE_URL;
 
 const TOKEN_KEY = 'token';
 const USER_KEY = 'authUser';
@@ -8,7 +8,7 @@ const USER_KEY = 'authUser';
 export type AuthUser = {
   id: string;
   email: string;
-  role: 'customer' | 'product_manager';
+  role: 'customer' | 'product_manager' | 'admin';
 };
 
 type LoginResponse = {
@@ -93,4 +93,15 @@ export function clearAuth(): void {
 export function authHeader(): Record<string, string> {
   const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export function isAuthFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  return (
+    msg.includes('invalid or expired token') ||
+    msg.includes('missing authorization header') ||
+    msg.includes('request failed (401)') ||
+    msg.includes('not authenticated')
+  );
 }

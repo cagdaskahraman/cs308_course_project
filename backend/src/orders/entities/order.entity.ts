@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -36,6 +37,11 @@ export class Order {
     enumName: 'order_status_enum',
   })
   status!: OrderStatus;
+
+  @ApiProperty({ format: 'uuid' })
+  @Index('IDX_orders_user_id')
+  @Column({ name: 'user_id', type: 'uuid', nullable: true })
+  userId!: string | null;
 
   @ApiProperty({ type: () => [OrderItem] })
   @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })

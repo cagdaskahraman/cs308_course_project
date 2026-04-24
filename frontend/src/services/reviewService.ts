@@ -1,4 +1,6 @@
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3000';
+import { API_BASE_URL } from '../config/apiBase';
+
+const apiBaseUrl = API_BASE_URL;
 
 async function messageFromFailedResponse(res: Response): Promise<string> {
   try {

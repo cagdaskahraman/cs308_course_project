@@ -39,8 +39,16 @@ export const LoginPage = (): JSX.Element => {
   return (
     <div className="row justify-content-center">
       <div className="col-12 col-md-6 col-lg-4">
-        <h2 className="mb-3">Login</h2>
-        {error && <div className="alert alert-danger">{error}</div>}
+        <h2 className="mb-3 d-inline-flex align-items-center gap-2">
+          <i className="bi bi-box-arrow-in-right text-primary" aria-hidden />
+          Login
+        </h2>
+        {error && (
+          <div className="alert alert-danger d-flex align-items-center gap-2" role="alert">
+            <i className="bi bi-exclamation-circle-fill" aria-hidden />
+            <span>{error}</span>
+          </div>
+        )}
         <form onSubmit={(e) => void handleSubmit(e)}>
           <div className="mb-3">
             <label htmlFor="loginEmail" className="form-label">
@@ -68,8 +76,18 @@ export const LoginPage = (): JSX.Element => {
               required
             />
           </div>
-          <button className="btn btn-primary w-100" type="submit" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+          <button className="btn btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2" type="submit" disabled={loading}>
+            {loading ? (
+              <>
+                <span className="spinner-border spinner-border-sm" aria-hidden />
+                Logging in…
+              </>
+            ) : (
+              <>
+                <i className="bi bi-unlock-fill" aria-hidden />
+                Login
+              </>
+            )}
           </button>
         </form>
         <p className="mt-3 mb-0">

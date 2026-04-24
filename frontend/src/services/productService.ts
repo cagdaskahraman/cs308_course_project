@@ -1,6 +1,8 @@
 import type { Product } from '../types/product';
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3000';
+import { API_BASE_URL } from '../config/apiBase';
+
+const apiBaseUrl = API_BASE_URL;
 
 /** Avoid infinite “Loading…” if the API is down or unreachable. */
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -52,7 +54,7 @@ function mapProductFromApi(raw: Product): Product {
 export type ProductQueryParams = {
   category?: string | null;
   search?: string;
-  sortBy?: 'price';
+  sortBy?: 'price' | 'popularity';
   sortOrder?: 'asc' | 'desc';
 };
 

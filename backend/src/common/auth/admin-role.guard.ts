@@ -6,18 +6,17 @@ import {
 } from '@nestjs/common';
 
 import { UserRole } from '../../users/entities/user.entity';
+
 type RequestWithUser = { user?: { role?: string } };
 
 @Injectable()
-export class ProductManagerGuard implements CanActivate {
+export class AdminRoleGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
-    const user = request.user;
-    const isStaff =
-      user?.role === UserRole.PRODUCT_MANAGER || user?.role === UserRole.ADMIN;
-    if (!isStaff) {
-      throw new ForbiddenException('product manager or admin role required');
+    const role = request.user?.role;
+    if (role === UserRole.ADMIN) {
+      return true;
     }
-    return true;
+    throw new ForbiddenException('admin role required');
   }
 }

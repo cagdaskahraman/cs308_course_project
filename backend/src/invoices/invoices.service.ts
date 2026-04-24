@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -85,6 +90,42 @@ export class InvoicesService {
   async renderPdfByOrderId(orderId: string): Promise<{ dto: InvoiceDto; pdf: Buffer }> {
     const dto = await this.getByOrderId(orderId);
     return { dto, pdf: this.pdfService.generate(dto) };
+  }
+
+  async assertOrderAccess(
+    orderId: string,
+    actor: { sub: string; role?: string },
+  ): Promise<void> {
+    const invoice = await this.invoiceRepository.findOne({
+      where: { order: { id: orderId } },
+      relations: { order: true },
+    });
+    if (!invoice) {
+      throw new NotFoundException(`Invoice not found for order ${orderId}`);
+    }
+    const isStaff =
+      actor.role === 'product_manager' || actor.role === 'admin';
+    if (!isStaff && invoice.order.userId !== actor.sub) {
+      throw new ForbiddenException('You are not allowed to access this invoice');
+    }
+  }
+
+  async assertInvoiceAccess(
+    invoiceId: string,
+    actor: { sub: string; role?: string },
+  ): Promise<void> {
+    const invoice = await this.invoiceRepository.findOne({
+      where: { id: invoiceId },
+      relations: { order: true },
+    });
+    if (!invoice) {
+      throw new NotFoundException(`Invoice not found: ${invoiceId}`);
+    }
+    const isStaff =
+      actor.role === 'product_manager' || actor.role === 'admin';
+    if (!isStaff && invoice.order.userId !== actor.sub) {
+      throw new ForbiddenException('You are not allowed to access this invoice');
+    }
   }
 
   private writePdfToDisk(invoiceNumber: string, pdf: Buffer): void {

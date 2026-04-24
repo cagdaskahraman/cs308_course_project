@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+
+import { AdminModerationNav } from '../components/AdminModerationNav';
+import { useAuth } from '../context/AuthContext';
+import { isAuthFailure } from '../services/authService';
 import {
   getPendingReviews,
   approveReview,
@@ -7,35 +11,37 @@ import {
   type PendingReview,
 } from '../services/adminReviewService';
 
-function getUserRole(): string | null {
-  const token = localStorage.getItem('token');
-  if (!token) return null;
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1])) as Record<string, unknown>;
-    return String(payload.role ?? 'customer');
-  } catch {
-    return null;
-  }
-}
-
 export const AdminReviewsPage = (): JSX.Element => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated, signOut } = useAuth();
   const [reviews, setReviews] = useState<PendingReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const role = getUserRole();
+  const canModerate = user?.role === 'product_manager' || user?.role === 'admin';
 
   useEffect(() => {
-    if (role !== 'product_manager') {
+    if (!isAuthenticated) {
+      navigate('/login?next=/admin/reviews', { replace: true });
+      return;
+    }
+    if (!canModerate) {
       setLoading(false);
       return;
     }
     void getPendingReviews()
       .then(setReviews)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load reviews'))
+      .catch((e) => {
+        if (isAuthFailure(e)) {
+          signOut();
+          navigate('/login?next=/admin/reviews', { replace: true });
+          return;
+        }
+        setError(e instanceof Error ? e.message : 'Failed to load reviews');
+      })
       .finally(() => setLoading(false));
-  }, [role]);
+  }, [canModerate, isAuthenticated, navigate, signOut]);
 
   const handleApprove = async (id: string) => {
     setBusyId(id);
@@ -43,6 +49,11 @@ export const AdminReviewsPage = (): JSX.Element => {
       await approveReview(id);
       setReviews((prev) => prev.filter((r) => r.id !== id));
     } catch (e) {
+      if (isAuthFailure(e)) {
+        signOut();
+        navigate('/login?next=/admin/reviews', { replace: true });
+        return;
+      }
       alert(e instanceof Error ? e.message : 'Approve failed');
     } finally {
       setBusyId(null);
@@ -55,37 +66,68 @@ export const AdminReviewsPage = (): JSX.Element => {
       await rejectReview(id);
       setReviews((prev) => prev.filter((r) => r.id !== id));
     } catch (e) {
+      if (isAuthFailure(e)) {
+        signOut();
+        navigate('/login?next=/admin/reviews', { replace: true });
+        return;
+      }
       alert(e instanceof Error ? e.message : 'Reject failed');
     } finally {
       setBusyId(null);
     }
   };
 
-  if (!localStorage.getItem('token')) {
+  if (!isAuthenticated) {
     return (
-      <div className="text-center mt-5">
-        <h4>Please log in to access this page</h4>
-        <Link to="/login" className="btn btn-primary mt-3">Log In</Link>
+      <div className="text-center py-5">
+        <i className="bi bi-shield-lock display-4 text-secondary mb-3 d-block" aria-hidden />
+        <h4 className="fw-semibold">Please log in to access this page</h4>
+        <Link to="/login?next=/admin/reviews" className="btn btn-primary mt-3 d-inline-flex align-items-center gap-2">
+          <i className="bi bi-box-arrow-in-right" aria-hidden />
+          Log in
+        </Link>
       </div>
     );
   }
 
-  if (role !== 'product_manager') {
+  if (!canModerate) {
     return (
-      <div className="alert alert-warning mt-5">
-        You do not have permission to access this page.
+      <div className="alert alert-warning mt-5 d-flex align-items-start gap-2">
+        <i className="bi bi-exclamation-triangle-fill mt-1" aria-hidden />
+        <span>You do not have permission to access this page.</span>
       </div>
     );
   }
 
-  if (loading) return <p className="text-center fs-5 mt-5">Loading pending reviews...</p>;
-  if (error) return <div className="alert alert-danger mt-4">{error}</div>;
+  if (loading) {
+    return (
+      <div className="text-center py-5 text-secondary" role="status">
+        <div className="spinner-border text-primary mb-3" aria-hidden />
+        <p className="fs-5 mb-0">Loading pending reviews…</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="alert alert-danger mt-4 d-flex align-items-center gap-2" role="alert">
+        <i className="bi bi-exclamation-circle-fill" aria-hidden />
+        <span>{error}</span>
+      </div>
+    );
+  }
 
   return (
     <>
-      <h2 className="fw-bold mb-4">Review Moderation</h2>
+      <AdminModerationNav active="reviews" />
+      <h2 className="fw-bold mb-4 d-inline-flex align-items-center gap-2">
+        <i className="bi bi-shield-check text-primary" aria-hidden />
+        Review moderation
+      </h2>
       {reviews.length === 0 ? (
-        <p className="text-secondary">No pending reviews at the moment.</p>
+        <div className="d-flex align-items-center gap-2 text-secondary">
+          <i className="bi bi-check2-all fs-4" aria-hidden />
+          <span>No pending reviews at the moment.</span>
+        </div>
       ) : (
         <div className="list-group">
           {reviews.map((r) => (
@@ -106,17 +148,21 @@ export const AdminReviewsPage = (): JSX.Element => {
               <p className="mb-2">{r.comment}</p>
               <div className="d-flex gap-2">
                 <button
-                  className="btn btn-sm btn-success"
+                  type="button"
+                  className="btn btn-sm btn-success d-inline-flex align-items-center gap-1"
                   disabled={busyId === r.id}
                   onClick={() => void handleApprove(r.id)}
                 >
+                  <i className="bi bi-check-lg" aria-hidden />
                   Approve
                 </button>
                 <button
-                  className="btn btn-sm btn-outline-danger"
+                  type="button"
+                  className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1"
                   disabled={busyId === r.id}
                   onClick={() => void handleReject(r.id)}
                 >
+                  <i className="bi bi-x-lg" aria-hidden />
                   Reject
                 </button>
               </div>

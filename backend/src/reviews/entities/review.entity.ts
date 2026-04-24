@@ -15,6 +15,7 @@ import { ReviewStatus } from './review-status.enum';
 
 @Entity('reviews')
 @Index('IDX_reviews_product_status', ['product', 'status'])
+@Index('UQ_reviews_user_product', ['user', 'product'], { unique: true })
 export class Review {
   @ApiProperty({ format: 'uuid' })
   @PrimaryGeneratedColumn('uuid')

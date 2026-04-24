@@ -23,6 +23,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 
 import { CurrentUser } from './decorators/current-user.decorator';
 import { CreateReviewDto } from './dto/create-review.dto';
@@ -31,7 +32,6 @@ import { ListProductReviewsQueryDto } from './dto/list-reviews-query.dto';
 import { ReviewStatus } from './entities/review-status.enum';
 import { Review } from './entities/review.entity';
 import { ProductManagerGuard } from './guards/product-manager.guard';
-import { JwtPayload, ReviewsJwtGuard } from './guards/reviews-jwt.guard';
 import { ReviewsService } from './reviews.service';
 
 @ApiTags('reviews')
@@ -41,7 +41,7 @@ export class ReviewsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(ReviewsJwtGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Submit a product review',
@@ -51,12 +51,15 @@ export class ReviewsController {
   @ApiCreatedResponse({ description: 'Review created in pending state.', type: Review })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
   @ApiNotFoundResponse({ description: 'Referenced product does not exist.' })
-  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateReviewDto): Promise<Review> {
+  create(
+    @CurrentUser() user: { sub: string },
+    @Body() dto: CreateReviewDto,
+  ): Promise<Review> {
     return this.reviewsService.create(user.sub, dto);
   }
 
   @Get()
-  @UseGuards(ReviewsJwtGuard, ProductManagerGuard)
+  @UseGuards(JwtAuthGuard, ProductManagerGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'List reviews for moderation',
@@ -74,7 +77,7 @@ export class ReviewsController {
   }
 
   @Patch(':id/approve')
-  @UseGuards(ReviewsJwtGuard, ProductManagerGuard)
+  @UseGuards(JwtAuthGuard, ProductManagerGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Approve a pending review' })
   @ApiParam({ name: 'id', format: 'uuid' })
@@ -90,7 +93,7 @@ export class ReviewsController {
   }
 
   @Patch(':id/reject')
-  @UseGuards(ReviewsJwtGuard, ProductManagerGuard)
+  @UseGuards(JwtAuthGuard, ProductManagerGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reject a pending review' })
   @ApiParam({ name: 'id', format: 'uuid' })
