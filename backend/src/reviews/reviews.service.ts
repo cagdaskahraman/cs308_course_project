@@ -8,10 +8,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { OrderItem } from '../orders/entities/order-item.entity';
-import { OrderStatus } from '../orders/entities/order-status.enum';
 import { Product } from '../products/entities/product.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { UpdateReviewCommentDto } from './dto/update-review-comment.dto';
 import { ReviewStatus } from './entities/review-status.enum';
 import { Review } from './entities/review.entity';
 
@@ -46,8 +46,8 @@ export class ReviewsService {
       .innerJoin('orderItem.order', 'order')
       .where('order.user_id = :userId', { userId })
       .andWhere('orderItem.product_id = :productId', { productId: dto.productId })
-      .andWhere('order.status != :cancelled', {
-        cancelled: OrderStatus.Cancelled,
+      .andWhere('orderItem.status = :delivered', {
+        delivered: 'delivered',
       })
       .getExists();
 
@@ -70,9 +70,34 @@ export class ReviewsService {
       product,
       user,
       rating: dto.rating,
-      comment: dto.comment,
-      status: ReviewStatus.PENDING,
+      comment: null,
+      pendingComment: null,
+      status: ReviewStatus.APPROVED,
     });
+    const saved = await this.reviewsRepository.save(review);
+    await this.refreshProductPopularity(dto.productId);
+    return saved;
+  }
+
+  async addComment(
+    userId: string,
+    productId: string,
+    dto: UpdateReviewCommentDto,
+  ): Promise<Review> {
+    const review = await this.reviewsRepository.findOne({
+      where: { user: { id: userId }, product: { id: productId } },
+      relations: { product: true },
+    });
+    if (!review) {
+      throw new NotFoundException(
+        'You must submit a rating first before adding a comment',
+      );
+    }
+    if (review.status !== ReviewStatus.APPROVED) {
+      throw new ConflictException('Your rating is not in approved state');
+    }
+    const normalized = dto.comment.trim();
+    review.pendingComment = normalized;
     return this.reviewsRepository.save(review);
   }
 
@@ -88,25 +113,39 @@ export class ReviewsService {
   }
 
   async listForModeration(status: ReviewStatus): Promise<Review[]> {
-    return this.reviewsRepository.find({
-      where: { status },
-      relations: { product: false, user: false },
-      order: { createdAt: 'ASC' },
-    });
+    if (status !== ReviewStatus.PENDING) {
+      return [];
+    }
+    return this.reviewsRepository
+      .createQueryBuilder('review')
+      .leftJoinAndSelect('review.product', 'product')
+      .leftJoinAndSelect('review.user', 'user')
+      .where('review.pending_comment IS NOT NULL')
+      .orderBy('review.created_at', 'ASC')
+      .getMany();
   }
 
   async approve(id: string): Promise<Review> {
-    const review = await this.reviewsRepository.findOne({ where: { id } });
+    const review = await this.reviewsRepository.findOne({
+      where: { id },
+      relations: { product: true },
+    });
     if (!review) {
       throw new NotFoundException(`Review not found: ${id}`);
     }
     if (review.status !== ReviewStatus.PENDING) {
-      throw new ConflictException(
-        `Review ${id} is not pending (current: ${review.status})`,
-      );
+      if (!review.pendingComment) {
+        throw new ConflictException(
+          `Review ${id} has no pending comment to approve`,
+        );
+      }
     }
+    review.comment = review.pendingComment;
+    review.pendingComment = null;
     review.status = ReviewStatus.APPROVED;
-    return this.reviewsRepository.save(review);
+    const saved = await this.reviewsRepository.save(review);
+    await this.refreshProductPopularity(review.product.id);
+    return saved;
   }
 
   async reject(id: string): Promise<Review> {
@@ -114,12 +153,35 @@ export class ReviewsService {
     if (!review) {
       throw new NotFoundException(`Review not found: ${id}`);
     }
-    if (review.status !== ReviewStatus.PENDING) {
+    if (!review.pendingComment) {
       throw new ConflictException(
-        `Review ${id} is not pending (current: ${review.status})`,
+        `Review ${id} has no pending comment to reject`,
       );
     }
-    review.status = ReviewStatus.REJECTED;
+    review.pendingComment = null;
+    review.status = ReviewStatus.APPROVED;
     return this.reviewsRepository.save(review);
+  }
+
+  async getMineForProduct(userId: string, productId: string): Promise<Review | null> {
+    return this.reviewsRepository.findOne({
+      where: { user: { id: userId }, product: { id: productId } },
+    });
+  }
+
+  private async refreshProductPopularity(productId: string): Promise<void> {
+    const row = await this.reviewsRepository
+      .createQueryBuilder('review')
+      .select('COALESCE(AVG(review.rating), 0)', 'avg')
+      .addSelect('COUNT(review.id)', 'count')
+      .where('review.product_id = :productId', { productId })
+      .andWhere('review.status = :status', { status: ReviewStatus.APPROVED })
+      .getRawOne<{ avg: string; count: string }>();
+
+    const average = Number(row?.avg ?? 0);
+    const count = Number(row?.count ?? 0);
+    const popularity = count;
+
+    await this.productsRepository.update({ id: productId }, { popularity });
   }
 }

@@ -8,6 +8,7 @@ const USER_KEY = 'authUser';
 export type AuthUser = {
   id: string;
   email: string;
+  fullName?: string;
   role: 'customer' | 'product_manager' | 'admin';
 };
 
@@ -18,6 +19,7 @@ type LoginResponse = {
 
 type RegisterPayload = {
   email: string;
+  fullName: string;
   password: string;
   confirmPassword: string;
 };

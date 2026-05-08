@@ -33,6 +33,12 @@ export class InvoiceDto {
   @ApiProperty()
   billingName!: string;
 
+  @ApiProperty({ required: false })
+  taxId!: string | null;
+
+  @ApiProperty()
+  billingAddress!: string;
+
   @ApiProperty()
   cardLast4!: string;
 

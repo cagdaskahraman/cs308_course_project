@@ -28,6 +28,7 @@ import { CurrentUser } from '../common/auth/current-user.decorator';
 import { AuthUserPayload, JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 import { StaffRoleGuard } from '../common/auth/staff-role.guard';
 import { CheckoutDto } from './dto/checkout.dto';
+import { UpdateOrderItemStatusDto } from './dto/update-order-item-status.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Order } from './entities/order.entity';
 import { OrdersService } from './orders.service';
@@ -86,6 +87,25 @@ export class OrdersController {
     return this.ordersService.findForCurrentUser(user.sub);
   }
 
+  @Get()
+  @UseGuards(JwtAuthGuard, StaffRoleGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List all orders (staff)',
+    description:
+      'Returns all orders for product managers/admins so delivery status can be managed.',
+  })
+  @ApiOkResponse({ description: 'All orders in the system.', type: [Order] })
+  @ApiUnauthorizedResponse({
+    description: 'Missing or invalid bearer token — login required.',
+  })
+  @ApiForbiddenResponse({
+    description: 'Only product manager or admin can access this endpoint.',
+  })
+  listAllForStaff(): Promise<Order[]> {
+    return this.ordersService.findAllForStaff();
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -135,5 +155,28 @@ export class OrdersController {
     @Body() body: UpdateOrderStatusDto,
   ): Promise<Order> {
     return this.ordersService.updateStatus(id, body);
+  }
+
+  @Patch(':id/items/:itemId/status')
+  @UseGuards(JwtAuthGuard, StaffRoleGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update order item delivery status',
+    description:
+      'Allows product managers/admins to advance each order item: processing -> in-transit -> delivered.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiParam({ name: 'itemId', format: 'uuid' })
+  @ApiBody({ type: UpdateOrderItemStatusDto })
+  @ApiOkResponse({
+    description: 'Order item status updated; returns full order.',
+    type: Order,
+  })
+  updateOrderItemStatus(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Param('itemId', new ParseUUIDPipe({ version: '4' })) itemId: string,
+    @Body() body: UpdateOrderItemStatusDto,
+  ): Promise<Order> {
+    return this.ordersService.updateItemStatus(id, itemId, body);
   }
 }

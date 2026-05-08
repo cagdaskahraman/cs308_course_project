@@ -9,6 +9,7 @@ export type PendingReview = {
   userId: string;
   rating: number;
   comment: string;
+  existingComment?: string | null;
   status: string;
   createdAt: string;
 };
@@ -38,7 +39,27 @@ export async function getPendingReviews(): Promise<PendingReview[]> {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch pending reviews'));
-  return res.json() as Promise<PendingReview[]>;
+  const rows = (await res.json()) as Array<{
+    id: string;
+    rating: number;
+    status: string;
+    comment: string | null;
+    pendingComment?: string | null;
+    createdAt: string;
+    product?: { id: string; name: string };
+    user?: { id: string };
+  }>;
+  return rows.map((r) => ({
+    id: r.id,
+    productId: r.product?.id ?? '',
+    productName: r.product?.name,
+    userId: r.user?.id ?? '',
+    rating: r.rating,
+    comment: r.pendingComment ?? r.comment ?? '',
+    existingComment: r.comment ?? null,
+    status: r.status,
+    createdAt: r.createdAt,
+  }));
 }
 
 export async function approveReview(reviewId: string): Promise<void> {

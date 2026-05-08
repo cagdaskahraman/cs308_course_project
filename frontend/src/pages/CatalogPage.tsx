@@ -10,7 +10,6 @@ type SortOption =
   | ''
   | 'price-asc'
   | 'price-desc'
-  | 'popularity-asc'
   | 'popularity-desc';
 
 function useDebounce(value: string, delay: number): string {
@@ -34,6 +33,16 @@ export const CatalogPage = (): JSX.Element => {
   const debouncedSearch = useDebounce(searchInput, 300);
   const [sort, setSort] = useState<SortOption>('');
   const { showToast } = useToast();
+
+  const categoryIconClass = (category: string): string => {
+    const normalized = category.toLowerCase();
+    if (normalized === 'laptop') return 'bi-laptop';
+    if (normalized === 'headphone') return 'bi-headphones';
+    if (normalized === 'phone') return 'bi-phone';
+    if (normalized === 'tablet') return 'bi-tablet';
+    if (normalized === 'accessory') return 'bi-usb-symbol';
+    return 'bi-grid';
+  };
 
   useEffect(() => {
     void getCategories()
@@ -75,6 +84,7 @@ export const CatalogPage = (): JSX.Element => {
       try {
         const cartId = await getOrCreateCartId();
         await addCartItem(cartId, product.id, 1);
+        showToast(`Added "${product.name}" to cart.`, 'success');
       } catch (e) {
         showToast(e instanceof Error ? e.message : 'Failed to add to cart');
       } finally {
@@ -137,6 +147,19 @@ export const CatalogPage = (): JSX.Element => {
                   {product.id.slice(0, 8)}…
                 </p>
                 <p className="card-text text-secondary flex-grow-1 small">{product.description}</p>
+                <div className="d-flex align-items-center justify-content-between small text-secondary">
+                  <span className="d-inline-flex align-items-center gap-1">
+                    <i className="bi bi-star-fill text-warning" aria-hidden />
+                    {(product.reviewCount ?? 0) > 0
+                      ? (product.averageRating ?? 0).toFixed(1)
+                      : 'No Rating Yet'}
+                  </span>
+                  <span className="d-inline-flex align-items-center gap-1">
+                    <i className="bi bi-chat-left-text" aria-hidden />
+                    {product.reviewCount ?? 0} review
+                    {(product.reviewCount ?? 0) === 1 ? '' : 's'}
+                  </span>
+                </div>
                 <div className="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
                   <span className="fw-bold fs-5 text-primary d-inline-flex align-items-center gap-1">
                     <i className="bi bi-currency-exchange" aria-hidden />
@@ -182,17 +205,27 @@ export const CatalogPage = (): JSX.Element => {
 
   return (
     <>
-      <div className="d-flex flex-wrap align-items-center gap-2 mb-4">
-        <h1 className="h3 fw-bold mb-0 d-inline-flex align-items-center gap-2">
-          <i className="bi bi-shop-window text-primary" aria-hidden />
-          Catalog
-        </h1>
+      <div className="hero-panel mb-4">
+        <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <h1 className="h3 fw-bold mb-1 d-inline-flex align-items-center gap-2">
+              <i className="bi bi-shop-window text-primary" aria-hidden />
+              ElectroStore Catalog
+            </h1>
+            <p className="text-secondary mb-0">
+              Search, compare and add products with live stock visibility.
+            </p>
+          </div>
+          <span className="badge text-bg-light fs-6 px-3 py-2">
+            {products.length} products
+          </span>
+        </div>
       </div>
 
       <div className="d-flex flex-wrap gap-2 mb-4 justify-content-center">
         <button
           type="button"
-          className={`btn btn-sm rounded-pill d-inline-flex align-items-center gap-2 ${selectedCategory === null ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
+          className={`btn rounded-pill d-inline-flex align-items-center gap-2 px-4 py-2 ${selectedCategory === null ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
           onClick={() => setSelectedCategory(null)}
         >
           <i className="bi bi-grid-fill" aria-hidden />
@@ -202,10 +235,10 @@ export const CatalogPage = (): JSX.Element => {
           <button
             type="button"
             key={cat}
-            className={`btn btn-sm rounded-pill d-inline-flex align-items-center gap-2 ${selectedCategory === cat ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
+            className={`btn rounded-pill d-inline-flex align-items-center gap-2 px-4 py-2 ${selectedCategory === cat ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
             onClick={() => setSelectedCategory(cat)}
           >
-            <i className="bi bi-bookmark-fill" aria-hidden />
+            <i className={`bi ${categoryIconClass(cat)}`} aria-hidden />
             {cat}
           </button>
         ))}
@@ -249,7 +282,6 @@ export const CatalogPage = (): JSX.Element => {
               <option value="price-asc">Price: low → high</option>
               <option value="price-desc">Price: high → low</option>
               <option value="popularity-desc">Popularity: high → low</option>
-              <option value="popularity-asc">Popularity: low → high</option>
             </select>
           </div>
         </div>

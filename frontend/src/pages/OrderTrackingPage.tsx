@@ -2,8 +2,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   downloadInvoicePdf,
+  getInvoiceMailDispatchByOrderId,
   getInvoiceByOrderId,
   getOrder,
+  type InvoiceMailDispatch,
   type Invoice,
   type Order,
 } from '../services/orderService';
@@ -42,6 +44,7 @@ export const OrderTrackingPage = (): JSX.Element => {
   const { isAuthenticated, signOut } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [invoiceDispatch, setInvoiceDispatch] = useState<InvoiceMailDispatch | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [error, setError] = useState('');
@@ -55,8 +58,15 @@ export const OrderTrackingPage = (): JSX.Element => {
         try {
           const loadedInvoice = await getInvoiceByOrderId(orderId);
           setInvoice(loadedInvoice);
+          try {
+            const dispatch = await getInvoiceMailDispatchByOrderId(orderId);
+            setInvoiceDispatch(dispatch);
+          } catch {
+            setInvoiceDispatch(null);
+          }
         } catch {
           setInvoice(null);
+          setInvoiceDispatch(null);
         }
       })
       .catch((e) => {
@@ -221,10 +231,67 @@ export const OrderTrackingPage = (): JSX.Element => {
             <p className="text-secondary mb-3">
               Invoice #{invoice.invoiceNumber} issued to {invoice.billingEmail}
             </p>
+            <div className="row g-3 mb-3">
+              <div className="col-md-6">
+                <div className="p-3 rounded bg-light h-100">
+                  <p className="fw-semibold mb-1">Billing Details</p>
+                  <p className="mb-1 small">{invoice.billingName}</p>
+                  <p className="mb-0 small">{invoice.billingAddress}</p>
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div className="p-3 rounded bg-light h-100">
+                  <p className="fw-semibold mb-1">Payment Details</p>
+                  <p className="mb-1 small">
+                    Authorization: {invoice.authorizationReference}
+                  </p>
+                  <p className="mb-1 small">Card: **** {invoice.cardLast4}</p>
+                  <p className="mb-0 small fw-semibold">
+                    Total: {formatPrice(invoice.total)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="table-responsive mb-3">
+              <table className="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Unit</th>
+                    <th>Line Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoice.items.map((item) => (
+                    <tr key={`${invoice.id}-${item.productId ?? item.name}`}>
+                      <td>{item.name}</td>
+                      <td>{item.quantity}</td>
+                      <td>{formatPrice(item.unitPrice)}</td>
+                      <td className="fw-semibold">{formatPrice(item.lineTotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <div className="d-flex flex-wrap gap-2 align-items-center">
               <span className="badge text-bg-light">Auth: {invoice.authorizationReference}</span>
               <span className="badge text-bg-light">Card: **** {invoice.cardLast4}</span>
             </div>
+            {invoiceDispatch ? (
+              <div className="alert alert-success mt-3 mb-0 py-2 d-flex align-items-center gap-2">
+                <i className="bi bi-envelope-check-fill" aria-hidden />
+                <span>
+                  Email sent to <strong>{invoiceDispatch.to}</strong> with attachment{' '}
+                  <strong>{invoiceDispatch.attachmentName}</strong>.
+                  {invoiceDispatch.messageId ? (
+                    <>
+                      {' '}SMTP Message-ID: <strong>{invoiceDispatch.messageId}</strong>.
+                    </>
+                  ) : null}
+                </span>
+              </div>
+            ) : null}
             <button
               type="button"
               className="btn btn-outline-primary btn-sm mt-3 d-inline-flex align-items-center gap-2"

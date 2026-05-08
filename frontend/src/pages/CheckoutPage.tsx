@@ -37,6 +37,7 @@ export const CheckoutPage = (): JSX.Element => {
     cvc: '',
   });
   const [billingEmail, setBillingEmail] = useState(user?.email ?? '');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
 
   const handleExpiryInput = (value: string): void => {
     const digits = value.replace(/\D/g, '').slice(0, 4);
@@ -98,6 +99,9 @@ export const CheckoutPage = (): JSX.Element => {
     if (!billingEmail.trim()) {
       return 'Billing email is required.';
     }
+    if (deliveryAddress.trim().length < 10) {
+      return 'Delivery address must be at least 10 characters.';
+    }
     return null;
   };
 
@@ -124,6 +128,7 @@ export const CheckoutPage = (): JSX.Element => {
           cvc: payment.cvc.trim(),
         },
         billingEmail: billingEmail.trim(),
+        deliveryAddress: deliveryAddress.trim(),
       });
       localStorage.removeItem('electrostore_cart_id');
       navigate(`/orders/${order.id}`);
@@ -307,6 +312,20 @@ export const CheckoutPage = (): JSX.Element => {
                 className="form-control"
                 value={billingEmail}
                 onChange={(e) => setBillingEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="col-12">
+              <label htmlFor="deliveryAddress" className="form-label d-inline-flex align-items-center gap-2">
+                <i className="bi bi-geo-alt" aria-hidden />
+                Delivery address
+              </label>
+              <textarea
+                id="deliveryAddress"
+                className="form-control"
+                rows={3}
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
                 required
               />
             </div>

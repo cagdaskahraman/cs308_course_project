@@ -36,6 +36,19 @@ export class Invoice {
   billingName!: string;
 
   @ApiProperty({
+    description: 'Customer tax identifier captured at checkout time.',
+    required: false,
+  })
+  @Column({ name: 'tax_id', type: 'varchar', nullable: true })
+  taxId!: string | null;
+
+  @ApiProperty({
+    description: 'Delivery/billing address printed on invoice.',
+  })
+  @Column({ name: 'billing_address', type: 'text' })
+  billingAddress!: string;
+
+  @ApiProperty({
     description: 'Last 4 digits of the card used to pay for this invoice.',
   })
   @Column({ name: 'card_last4', type: 'varchar', length: 4 })

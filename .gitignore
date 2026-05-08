@@ -61,7 +61,7 @@ backend/storage/
 *.local
 
 # ========================
-# Local-only scripts (Jira credentials via env; do not commit)
+# Local-only scripts (credentials via env; do not commit)
 # ========================
-scripts/jira_clean_cursor_descriptions.py
+scripts/jira_clean_descriptions.py
 scripts/__pycache__/

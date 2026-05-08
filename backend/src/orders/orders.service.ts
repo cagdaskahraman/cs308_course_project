@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  InternalServerErrorException,
   Injectable,
   Logger,
   NotFoundException,
@@ -14,9 +15,12 @@ import { InvoicesService } from '../invoices/invoices.service';
 import { PaymentResultDto } from '../payments/dto/payment-result.dto';
 import { PaymentsService } from '../payments/payments.service';
 import { Product } from '../products/entities/product.entity';
+import { User } from '../users/entities/user.entity';
 import { CheckoutDto } from './dto/checkout.dto';
+import { UpdateOrderItemStatusDto } from './dto/update-order-item-status.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderItem } from './entities/order-item.entity';
+import { OrderItemStatus } from './entities/order-item-status.enum';
 import { OrderStatus } from './entities/order-status.enum';
 import { Order } from './entities/order.entity';
 
@@ -29,6 +33,8 @@ export class OrdersService {
     private readonly dataSource: DataSource,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
     private readonly paymentsService: PaymentsService,
     private readonly invoicesService: InvoicesService,
   ) {}
@@ -37,7 +43,19 @@ export class OrdersService {
     dto: CheckoutDto,
     actor: { sub: string; email?: string; role?: string },
   ): Promise<Order> {
-    const billingEmail = dto.billingEmail ?? actor?.email ?? 'anonymous@electrostore.local';
+    const actorUser = await this.usersRepository.findOne({
+      where: { id: actor.sub },
+      select: ['id', 'email', 'fullName', 'taxId', 'homeAddress'],
+    });
+    const billingEmail =
+      dto.billingEmail ??
+      actorUser?.email ??
+      actor?.email ??
+      'anonymous@electrostore.local';
+    const billingName = actorUser?.fullName?.trim() || dto.payment.cardHolder;
+    const deliveryAddress =
+      dto.deliveryAddress?.trim() || actorUser?.homeAddress?.trim() || 'N/A';
+    const taxId = actorUser?.taxId?.trim() || null;
 
     const saved = await this.dataSource.transaction(async (manager) => {
       let totalPrice = 0;
@@ -67,6 +85,7 @@ export class OrdersService {
           manager.create(OrderItem, {
             quantity: line.quantity,
             priceAtPurchase: product.price,
+            status: OrderItemStatus.Processing,
             product,
           }),
         );
@@ -81,6 +100,7 @@ export class OrdersService {
         totalPrice,
         status: OrderStatus.Processing,
         userId: actor.sub,
+        deliveryAddress,
         items: orderItems,
       });
 
@@ -94,7 +114,12 @@ export class OrdersService {
         manager,
         fullOrder,
         payment,
-        billingEmail,
+        {
+          email: billingEmail,
+          name: billingName,
+          address: deliveryAddress,
+          taxId,
+        },
       );
 
       if (dto.cartId) {
@@ -116,8 +141,11 @@ export class OrdersService {
     try {
       await this.invoicesService.deliverInvoiceForOrder(saved.id);
     } catch (err) {
-      this.logger.warn(
+      this.logger.error(
         `[Orders] Invoice dispatch failed for order ${saved.id}: ${(err as Error).message}`,
+      );
+      throw new InternalServerErrorException(
+        'Order was created but invoice email could not be sent. Please verify SMTP settings and try again.',
       );
     }
 
@@ -143,6 +171,13 @@ export class OrdersService {
     });
   }
 
+  async findAllForStaff(): Promise<Order[]> {
+    return this.orderRepository.find({
+      relations: { items: { product: true } },
+      order: { orderDate: 'DESC' },
+    });
+  }
+
   async findOneForUser(
     id: string,
     actor: { sub: string; role?: string },
@@ -157,7 +192,10 @@ export class OrdersService {
   }
 
   async updateStatus(id: string, dto: UpdateOrderStatusDto): Promise<Order> {
-    const order = await this.orderRepository.findOne({ where: { id } });
+    const order = await this.orderRepository.findOne({
+      where: { id },
+      relations: { items: true },
+    });
     if (!order) {
       throw new NotFoundException(`Order not found: ${id}`);
     }
@@ -172,6 +210,19 @@ export class OrdersService {
     order.status = next;
     await this.orderRepository.save(order);
 
+    if (next === OrderStatus.InTransit || next === OrderStatus.Delivered) {
+      const mappedItemStatus =
+        next === OrderStatus.InTransit
+          ? OrderItemStatus.InTransit
+          : OrderItemStatus.Delivered;
+      for (const item of order.items) {
+        if (item.status !== mappedItemStatus) {
+          item.status = mappedItemStatus;
+          await this.dataSource.manager.save(OrderItem, item);
+        }
+      }
+    }
+
     if (next === OrderStatus.InTransit) {
       this.logger.log(
         `[DeliveryEvent] Order ${order.id} forwarded to Delivery Department`,
@@ -179,6 +230,42 @@ export class OrdersService {
     }
 
     return this.findOne(id);
+  }
+
+  async updateItemStatus(
+    orderId: string,
+    itemId: string,
+    dto: UpdateOrderItemStatusDto,
+  ): Promise<Order> {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: { items: { product: true } },
+    });
+    if (!order) {
+      throw new NotFoundException(`Order not found: ${orderId}`);
+    }
+
+    const item = order.items.find((it) => it.id === itemId);
+    if (!item) {
+      throw new NotFoundException(`Order item not found: ${itemId}`);
+    }
+
+    if (!OrdersService.isValidOrderItemTransition(item.status, dto.status)) {
+      throw new BadRequestException(
+        `Invalid item status transition from '${item.status}' to '${dto.status}'`,
+      );
+    }
+
+    item.status = dto.status;
+    await this.dataSource.manager.save(OrderItem, item);
+
+    const nextOrderStatus = OrdersService.deriveOrderStatusFromItems(order.items);
+    if (order.status !== nextOrderStatus) {
+      order.status = nextOrderStatus;
+      await this.orderRepository.save(order);
+    }
+
+    return this.findOne(orderId);
   }
 
   private static isValidStatusTransition(
@@ -192,5 +279,28 @@ export class OrdersService {
       [OrderStatus.Cancelled]: [],
     };
     return allowed[current].includes(next);
+  }
+
+  private static isValidOrderItemTransition(
+    current: OrderItemStatus,
+    next: OrderItemStatus,
+  ): boolean {
+    const allowed: Record<OrderItemStatus, readonly OrderItemStatus[]> = {
+      [OrderItemStatus.Processing]: [OrderItemStatus.InTransit],
+      [OrderItemStatus.InTransit]: [OrderItemStatus.Delivered],
+      [OrderItemStatus.Delivered]: [],
+    };
+    return allowed[current].includes(next);
+  }
+
+  private static deriveOrderStatusFromItems(items: OrderItem[]): OrderStatus {
+    if (items.length === 0) return OrderStatus.Processing;
+    if (items.every((i) => i.status === OrderItemStatus.Delivered)) {
+      return OrderStatus.Delivered;
+    }
+    if (items.some((i) => i.status === OrderItemStatus.InTransit)) {
+      return OrderStatus.InTransit;
+    }
+    return OrderStatus.Processing;
   }
 }

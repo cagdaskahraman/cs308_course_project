@@ -6,6 +6,7 @@ import { AdminRoleGuard } from '../common/auth/admin-role.guard';
 import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 import { AdminUsersController } from './admin-users.controller';
 import { User } from './entities/user.entity';
+import { UsersDevSeedService } from './users-dev-seed.service';
 import { UsersService } from './users.service';
 
 @Module({
@@ -17,7 +18,12 @@ import { UsersService } from './users.service';
     }),
   ],
   controllers: [AdminUsersController],
-  providers: [UsersService, JwtAuthGuard, AdminRoleGuard],
+  providers: [
+    UsersService,
+    UsersDevSeedService,
+    JwtAuthGuard,
+    AdminRoleGuard,
+  ],
   exports: [TypeOrmModule, UsersService],
 })
 export class UsersModule {}

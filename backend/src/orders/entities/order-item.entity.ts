@@ -9,6 +9,7 @@ import {
 
 import { decimalNumberTransformer } from '../../common/typeorm/decimal-number.transformer';
 import { Product } from '../../products/entities/product.entity';
+import { OrderItemStatus } from './order-item-status.enum';
 import { Order } from './order.entity';
 
 @Entity('order_items')
@@ -28,6 +29,15 @@ export class OrderItem {
     transformer: decimalNumberTransformer,
   })
   priceAtPurchase!: number;
+
+  @ApiProperty({ enum: OrderItemStatus })
+  @Column({
+    type: 'enum',
+    enum: OrderItemStatus,
+    enumName: 'order_item_status_enum',
+    default: OrderItemStatus.Processing,
+  })
+  status!: OrderItemStatus;
 
   @ManyToOne(() => Order, (order) => order.items, {
     onDelete: 'CASCADE',

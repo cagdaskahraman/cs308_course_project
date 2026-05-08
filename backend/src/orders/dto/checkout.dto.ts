@@ -5,7 +5,10 @@ import {
   IsArray,
   IsEmail,
   IsOptional,
+  IsString,
   IsUUID,
+  MaxLength,
+  MinLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -67,5 +70,16 @@ export class CheckoutDto {
   @IsOptional()
   @IsEmail({}, { message: 'billingEmail must be a valid email' })
   billingEmail?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Delivery address to print on invoice and forward to delivery department. Defaults to user home address when omitted.',
+    example: 'Istanbul, Besiktas, Nispetiye Cd. No:12 D:6',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(10)
+  @MaxLength(500)
+  deliveryAddress?: string;
 }
 

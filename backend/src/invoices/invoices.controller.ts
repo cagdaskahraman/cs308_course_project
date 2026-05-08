@@ -86,6 +86,34 @@ export class InvoicesController {
     res.end(pdf);
   }
 
+  @Get('orders/:orderId/invoice-mail')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Fetch invoice email dispatch metadata',
+    description:
+      'Returns the stubbed email dispatch metadata for the order invoice.',
+  })
+  @ApiParam({ name: 'orderId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Invoice mail dispatch metadata.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
+  @ApiForbiddenResponse({
+    description: 'Only the buyer, product manager, or admin can access this metadata.',
+  })
+  @ApiNotFoundResponse({
+    description: 'Invoice or invoice dispatch metadata does not exist.',
+  })
+  getInvoiceMailDispatchByOrderId(
+    @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
+    @CurrentUser() user: AuthUserPayload,
+  ) {
+    return this.invoicesService
+      .assertOrderAccess(orderId, user)
+      .then(() => this.invoicesService.getMailDispatchByOrderId(orderId));
+  }
+
   @Get('invoices/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

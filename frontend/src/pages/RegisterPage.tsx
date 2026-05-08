@@ -6,8 +6,11 @@ import { register } from '../services/authService';
 export const RegisterPage = (): JSX.Element => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +24,12 @@ export const RegisterPage = (): JSX.Element => {
 
     setLoading(true);
     try {
-      await register({ email, password, confirmPassword });
+      await register({
+        email,
+        fullName,
+        password,
+        confirmPassword,
+      });
       navigate('/login');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
@@ -58,32 +66,64 @@ export const RegisterPage = (): JSX.Element => {
             />
           </div>
           <div className="mb-3">
+            <label htmlFor="registerFullName" className="form-label">
+              Full name
+            </label>
+            <input
+              id="registerFullName"
+              type="text"
+              className="form-control"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              minLength={2}
+              required
+            />
+          </div>
+          <div className="mb-3">
             <label htmlFor="registerPassword" className="form-label">
               Password
             </label>
-            <input
-              id="registerPassword"
-              type="password"
-              className="form-control"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={8}
-              required
-            />
+            <div className="input-group">
+              <input
+                id="registerPassword"
+                type={showPassword ? 'text' : 'password'}
+                className="form-control"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setShowPassword((prev) => !prev)}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
           <div className="mb-3">
             <label htmlFor="registerConfirmPassword" className="form-label">
               Confirm Password
             </label>
-            <input
-              id="registerConfirmPassword"
-              type="password"
-              className="form-control"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              minLength={8}
-              required
-            />
+            <div className="input-group">
+              <input
+                id="registerConfirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                className="form-control"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+              >
+                {showConfirmPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
           <button className="btn btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2" type="submit" disabled={loading}>
             {loading ? (

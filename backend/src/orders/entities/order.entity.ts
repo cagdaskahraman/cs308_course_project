@@ -43,6 +43,10 @@ export class Order {
   @Column({ name: 'user_id', type: 'uuid', nullable: true })
   userId!: string | null;
 
+  @ApiProperty({ required: false })
+  @Column({ name: 'delivery_address', type: 'text', nullable: true })
+  deliveryAddress!: string | null;
+
   @ApiProperty({ type: () => [OrderItem] })
   @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
   items!: OrderItem[];

@@ -8,6 +8,7 @@ export type OrderItem = {
   id: string;
   quantity: number;
   priceAtPurchase: number;
+  status: 'processing' | 'in-transit' | 'delivered';
   product: { id: string; name: string; imageUrl: string };
 };
 
@@ -17,6 +18,7 @@ export type Order = {
   totalPrice: number;
   status: string;
   userId?: string | null;
+  deliveryAddress?: string | null;
   items: OrderItem[];
 };
 
@@ -32,6 +34,7 @@ export type CheckoutPayload = {
   items: { productId: string; quantity: number }[];
   payment: PaymentDetails;
   billingEmail?: string;
+  deliveryAddress?: string;
 };
 
 export type InvoiceLineItem = {
@@ -48,12 +51,26 @@ export type Invoice = {
   orderId: string;
   billingEmail: string;
   billingName: string;
+  taxId: string | null;
+  billingAddress: string;
   cardLast4: string;
   authorizationReference: string;
   items: InvoiceLineItem[];
   subtotal: number;
   total: number;
   issuedAt: string;
+};
+
+export type InvoiceMailDispatch = {
+  to: string;
+  subject: string;
+  body: string;
+  attachmentName: string;
+  attachmentSize: number;
+  messageId?: string;
+  smtpResponse?: string;
+  accepted?: string[];
+  rejected?: string[];
 };
 
 async function request<T>(input: string, init?: RequestInit): Promise<T> {
@@ -86,8 +103,45 @@ export async function getMyOrders(): Promise<Order[]> {
   });
 }
 
+export async function getAllOrdersForStaff(): Promise<Order[]> {
+  return request<Order[]>(`${apiBaseUrl}/orders`, {
+    headers: { ...authHeader() },
+  });
+}
+
+export async function updateOrderStatus(
+  orderId: string,
+  status: 'processing' | 'in-transit' | 'delivered' | 'cancelled',
+): Promise<Order> {
+  return request<Order>(`${apiBaseUrl}/orders/${orderId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function updateOrderItemStatus(
+  orderId: string,
+  itemId: string,
+  status: 'processing' | 'in-transit' | 'delivered',
+): Promise<Order> {
+  return request<Order>(`${apiBaseUrl}/orders/${orderId}/items/${itemId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify({ status }),
+  });
+}
+
 export async function getInvoiceByOrderId(orderId: string): Promise<Invoice> {
   return request<Invoice>(`${apiBaseUrl}/orders/${orderId}/invoice`, {
+    headers: { ...authHeader() },
+  });
+}
+
+export async function getInvoiceMailDispatchByOrderId(
+  orderId: string,
+): Promise<InvoiceMailDispatch> {
+  return request<InvoiceMailDispatch>(`${apiBaseUrl}/orders/${orderId}/invoice-mail`, {
     headers: { ...authHeader() },
   });
 }

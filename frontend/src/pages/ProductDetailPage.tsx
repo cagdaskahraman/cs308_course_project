@@ -2,7 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getProductById } from '../services/productService';
 import { getOrCreateCartId, addCartItem } from '../services/cartService';
-import { getApprovedReviews, submitReview, type Review } from '../services/reviewService';
+import {
+  getApprovedReviews,
+  getMyReviewForProduct,
+  submitReview,
+  submitReviewComment,
+  type Review,
+} from '../services/reviewService';
 import { useToast } from '../context/ToastContext';
 import { formatPrice } from '../utils/formatPrice';
 import { displayProductMeta } from '../utils/displayProductMeta';
@@ -49,8 +55,10 @@ export const ProductDetailPage = (): JSX.Element => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  const [myReview, setMyReview] = useState<Review | null>(null);
   const { showToast } = useToast();
 
   const token = localStorage.getItem('token');
@@ -86,6 +94,16 @@ export const ProductDetailPage = (): JSX.Element => {
     void loadReviews();
   }, [loadReviews]);
 
+  useEffect(() => {
+    if (!id || !token) {
+      setMyReview(null);
+      return;
+    }
+    void getMyReviewForProduct(id, token)
+      .then(setMyReview)
+      .catch(() => setMyReview(null));
+  }, [id, token]);
+
   const handleAdd = async () => {
     if (!product || product.stockQuantity <= 0) return;
     setAdding(true);
@@ -93,6 +111,7 @@ export const ProductDetailPage = (): JSX.Element => {
       const cartId = await getOrCreateCartId();
       await addCartItem(cartId, product.id, 1);
       setAdded(true);
+      showToast(`Added "${product.name}" to cart.`, 'success');
       setTimeout(() => setAdded(false), 2000);
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Failed to add to cart');
@@ -108,14 +127,47 @@ export const ProductDetailPage = (): JSX.Element => {
     setSubmitError(null);
     setSubmitSuccess(null);
     try {
-      await submitReview({ productId: id, rating, comment }, token);
-      setSubmitSuccess('Review submitted. It will show here after a moderator approves it.');
+      await submitReview(
+        {
+          productId: id,
+          rating,
+        },
+        token,
+      );
+      setSubmitSuccess('Rating submitted successfully.');
       setComment('');
       setRating(5);
+      await loadReviews();
+      const mine = await getMyReviewForProduct(id, token);
+      setMyReview(mine);
+      showToast('Rating submitted.', 'success');
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Could not submit your review. Please try again.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !token) return;
+    setCommentSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(null);
+    try {
+      await submitReviewComment(id, comment.trim(), token);
+      setSubmitSuccess('Comment submitted for moderation.');
+      setComment('');
+      await loadReviews();
+      const mine = await getMyReviewForProduct(id, token);
+      setMyReview(mine);
+      showToast('Comment submitted for approval.', 'info');
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'Could not submit comment.',
+      );
+    } finally {
+      setCommentSubmitting(false);
     }
   };
 
@@ -206,10 +258,14 @@ export const ProductDetailPage = (): JSX.Element => {
             <i className="bi bi-currency-exchange" aria-hidden />
             {formatPrice(product.price)}
           </h3>
-          <p className={`mt-2 d-inline-flex align-items-center gap-2 fw-medium ${product.stockQuantity > 0 ? 'text-success' : 'text-danger'}`}>
-            <i className={`bi ${product.stockQuantity > 0 ? 'bi-check-circle' : 'bi-x-circle'}`} aria-hidden />
-            {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
-          </p>
+          <div className="d-flex justify-content-end mt-2">
+            <p
+              className={`mb-0 d-inline-flex align-items-center gap-2 fw-medium ${product.stockQuantity > 0 ? 'text-success' : 'text-danger'}`}
+            >
+              <i className={`bi ${product.stockQuantity > 0 ? 'bi-check-circle' : 'bi-x-circle'}`} aria-hidden />
+              {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
+            </p>
+          </div>
           <div className="d-flex flex-wrap gap-2 mt-3">
             <button
               type="button"
@@ -276,7 +332,9 @@ export const ProductDetailPage = (): JSX.Element => {
                 <StarRating value={r.rating} />
                 <small className="text-muted">{new Date(r.createdAt).toLocaleDateString('tr-TR')}</small>
               </div>
-              <p className="mb-0">{r.comment}</p>
+              <p className="mb-0">
+                {r.comment?.trim() ? r.comment : 'Rating-only feedback.'}
+              </p>
             </div>
           ))}
         </div>
@@ -294,7 +352,7 @@ export const ProductDetailPage = (): JSX.Element => {
           </span>
         </div>
       ) : (
-        <form onSubmit={(e) => void handleSubmitReview(e)} className="mb-4">
+        <div className="mb-4">
           {submitError && (
             <div className="alert alert-danger" role="alert">
               {submitError}
@@ -305,35 +363,61 @@ export const ProductDetailPage = (): JSX.Element => {
               {submitSuccess}
             </div>
           )}
-          <div className="mb-3">
-            <label className="form-label">Rating</label>
-            <div><StarInput value={rating} onChange={setRating} /></div>
-          </div>
-          <div className="mb-3">
-            <label htmlFor="reviewComment" className="form-label">Comment</label>
-            <textarea
-              id="reviewComment"
-              className="form-control"
-              rows={3}
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit" className="btn btn-primary d-inline-flex align-items-center gap-2" disabled={submitting}>
-            {submitting ? (
-              <>
-                <span className="spinner-border spinner-border-sm" aria-hidden />
-                Submitting…
-              </>
-            ) : (
-              <>
-                <i className="bi bi-send-fill" aria-hidden />
-                Submit review
-              </>
-            )}
-          </button>
-        </form>
+          {!myReview ? (
+            <form onSubmit={(e) => void handleSubmitReview(e)} className="mb-3">
+              <div className="mb-3">
+                <label className="form-label">Rating (only for delivered items)</label>
+                <div><StarInput value={rating} onChange={setRating} /></div>
+              </div>
+              <button type="submit" className="btn btn-primary d-inline-flex align-items-center gap-2" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm" aria-hidden />
+                    Submitting…
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-send-fill" aria-hidden />
+                    Submit rating
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            <div className="alert alert-secondary">
+              Your rating: <strong>{myReview.rating}/5</strong>
+            </div>
+          )}
+          {myReview && (
+            <form onSubmit={(e) => void handleSubmitComment(e)}>
+              <div className="mb-3">
+                <label htmlFor="reviewComment" className="form-label">Comment</label>
+                <textarea
+                  id="reviewComment"
+                  className="form-control"
+                  rows={3}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Add comment to your rating"
+                  required
+                />
+              </div>
+              <button type="submit" className="btn btn-outline-primary d-inline-flex align-items-center gap-2" disabled={commentSubmitting}>
+                {commentSubmitting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm" aria-hidden />
+                    Sending…
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-chat-dots" aria-hidden />
+                    Submit comment
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+        </div>
       )}
     </>
   );

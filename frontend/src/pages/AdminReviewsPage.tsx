@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { AdminModerationNav } from '../components/AdminModerationNav';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { isAuthFailure } from '../services/authService';
 import {
   getPendingReviews,
@@ -18,6 +19,7 @@ export const AdminReviewsPage = (): JSX.Element => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const canModerate = user?.role === 'product_manager' || user?.role === 'admin';
 
@@ -48,13 +50,14 @@ export const AdminReviewsPage = (): JSX.Element => {
     try {
       await approveReview(id);
       setReviews((prev) => prev.filter((r) => r.id !== id));
+      showToast('Comment approved.', 'success');
     } catch (e) {
       if (isAuthFailure(e)) {
         signOut();
         navigate('/login?next=/admin/reviews', { replace: true });
         return;
       }
-      alert(e instanceof Error ? e.message : 'Approve failed');
+      showToast(e instanceof Error ? e.message : 'Approve failed');
     } finally {
       setBusyId(null);
     }
@@ -65,13 +68,14 @@ export const AdminReviewsPage = (): JSX.Element => {
     try {
       await rejectReview(id);
       setReviews((prev) => prev.filter((r) => r.id !== id));
+      showToast('Comment rejected.', 'info');
     } catch (e) {
       if (isAuthFailure(e)) {
         signOut();
         navigate('/login?next=/admin/reviews', { replace: true });
         return;
       }
-      alert(e instanceof Error ? e.message : 'Reject failed');
+      showToast(e instanceof Error ? e.message : 'Reject failed');
     } finally {
       setBusyId(null);
     }
@@ -137,6 +141,9 @@ export const AdminReviewsPage = (): JSX.Element => {
                   {r.productName && (
                     <span className="badge text-bg-secondary me-2">{r.productName}</span>
                   )}
+                  {r.productId ? (
+                    <span className="badge text-bg-light me-2">#{r.productId.slice(0, 8)}</span>
+                  ) : null}
                   <span style={{ color: '#f5a623' }}>
                     {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
                   </span>
@@ -145,7 +152,12 @@ export const AdminReviewsPage = (): JSX.Element => {
                   {new Date(r.createdAt).toLocaleDateString('tr-TR')}
                 </small>
               </div>
-              <p className="mb-2">{r.comment}</p>
+              <p className="mb-1"><strong>Pending comment:</strong> {r.comment}</p>
+              {r.existingComment ? (
+                <p className="mb-2 text-muted small">
+                  Current visible comment: {r.existingComment}
+                </p>
+              ) : null}
               <div className="d-flex gap-2">
                 <button
                   type="button"

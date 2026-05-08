@@ -48,6 +48,8 @@ function mapProductFromApi(raw: Product): Product {
     serialNumber: raw.serialNumber ?? null,
     warrantyStatus: raw.warrantyStatus ?? null,
     distributorInfo: raw.distributorInfo ?? null,
+    averageRating: Number(raw.averageRating ?? 0),
+    reviewCount: Number(raw.reviewCount ?? 0),
   };
 }
 

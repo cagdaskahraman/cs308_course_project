@@ -8,6 +8,8 @@ const sampleInvoice: InvoiceDto = {
   orderId: '22222222-2222-2222-2222-222222222222',
   billingEmail: 'buyer@example.com',
   billingName: 'AYSE YILMAZ',
+  taxId: '12345678901',
+  billingAddress: 'Istanbul, Kadikoy, Moda Mah. No:10 D:4',
   cardLast4: '4242',
   authorizationReference: 'AUTH-abcdef01',
   items: [
@@ -40,17 +42,21 @@ describe('InvoicePdfService', () => {
     expect(text).toContain('INV-2026-000001');
     expect(text).toContain('199.80');
     expect(text).toContain('**** **** **** 4242');
+    expect(text).toContain('12345678901');
   });
 });
 
 describe('InvoiceMailerService', () => {
-  it('records a stub dispatch including the attachment size', () => {
+  it('records a stub dispatch including the attachment size', async () => {
     const mailer = new InvoiceMailerService();
     const pdf = Buffer.from('%PDF-1.4 stub');
-    const payload = mailer.sendInvoice(sampleInvoice, pdf);
+    const payload = await mailer.sendInvoice(sampleInvoice, pdf);
     expect(payload.to).toBe(sampleInvoice.billingEmail);
     expect(payload.attachmentName).toBe(`${sampleInvoice.invoiceNumber}.pdf`);
     expect(payload.attachmentSize).toBe(pdf.length);
     expect(mailer.getLastDispatch()).toEqual(payload);
+    expect(mailer.getDispatchForInvoice(sampleInvoice.invoiceNumber)).toEqual(
+      payload,
+    );
   });
 });

@@ -29,6 +29,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { ListModerationReviewsQueryDto } from './dto/list-moderation-reviews-query.dto';
 import { ListProductReviewsQueryDto } from './dto/list-reviews-query.dto';
+import { UpdateReviewCommentDto } from './dto/update-review-comment.dto';
 import { ReviewStatus } from './entities/review-status.enum';
 import { Review } from './entities/review.entity';
 import { ProductManagerGuard } from './guards/product-manager.guard';
@@ -46,9 +47,9 @@ export class ReviewsController {
   @ApiOperation({
     summary: 'Submit a product review',
     description:
-      'Authenticated customers can submit a review. The review is created in `pending` state and becomes visible only after moderation.',
+      'Authenticated customers can submit rating for delivered products only.',
   })
-  @ApiCreatedResponse({ description: 'Review created in pending state.', type: Review })
+  @ApiCreatedResponse({ description: 'Review created.', type: Review })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
   @ApiNotFoundResponse({ description: 'Referenced product does not exist.' })
   create(
@@ -56,6 +57,22 @@ export class ReviewsController {
     @Body() dto: CreateReviewDto,
   ): Promise<Review> {
     return this.reviewsService.create(user.sub, dto);
+  }
+
+  @Patch('product/:productId/comment')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Add comment to existing rating',
+    description:
+      'Adds or updates a comment for the current user rating. Comment goes to moderation queue.',
+  })
+  addComment(
+    @CurrentUser() user: { sub: string },
+    @Param('productId', new ParseUUIDPipe({ version: '4' })) productId: string,
+    @Body() dto: UpdateReviewCommentDto,
+  ): Promise<Review> {
+    return this.reviewsService.addComment(user.sub, productId, dto);
   }
 
   @Get()
@@ -122,5 +139,15 @@ export class ReviewsController {
   ): Promise<Review[]> {
     const status = query.status ?? ReviewStatus.APPROVED;
     return this.reviewsService.listByProduct(productId, status);
+  }
+
+  @Get('product/:productId/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  getMyReviewForProduct(
+    @CurrentUser() user: { sub: string },
+    @Param('productId', new ParseUUIDPipe({ version: '4' })) productId: string,
+  ): Promise<Review | null> {
+    return this.reviewsService.getMineForProduct(user.sub, productId);
   }
 }

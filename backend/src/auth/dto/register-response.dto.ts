@@ -9,6 +9,9 @@ export class RegisterResponseDto {
   @ApiProperty()
   email!: string;
 
+  @ApiProperty()
+  fullName!: string;
+
   @ApiProperty({ enum: UserRole })
   role!: UserRole;
 

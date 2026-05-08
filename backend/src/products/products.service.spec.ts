@@ -1,35 +1,43 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-
 import { Product } from './entities/product.entity';
 import { ProductsService } from './products.service';
 
 type MockQueryBuilder = {
+  leftJoin: jest.Mock;
   andWhere: jest.Mock;
   orderBy: jest.Mock;
-  getMany: jest.Mock;
+  addOrderBy: jest.Mock;
+  addSelect: jest.Mock;
+  groupBy: jest.Mock;
+  where: jest.Mock;
+  getRawAndEntities: jest.Mock;
 };
 
 describe('ProductsService', () => {
   let service: ProductsService;
   let repository: {
     createQueryBuilder: jest.Mock;
-    findOne: jest.Mock;
   };
   let queryBuilder: MockQueryBuilder;
 
   beforeEach(async () => {
     queryBuilder = {
+      leftJoin: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
-      getMany: jest.fn().mockResolvedValue([]),
+      addOrderBy: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getRawAndEntities: jest
+        .fn()
+        .mockResolvedValue({ entities: [], raw: [] }),
     };
 
     repository = {
       createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
-      findOne: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -58,7 +66,10 @@ describe('ProductsService', () => {
   });
 
   it('throws not found for unknown id', async () => {
-    repository.findOne.mockResolvedValue(null);
+    queryBuilder.getRawAndEntities.mockResolvedValue({
+      entities: [],
+      raw: [],
+    });
 
     await expect(service.findOne('missing-id')).rejects.toBeInstanceOf(NotFoundException);
   });

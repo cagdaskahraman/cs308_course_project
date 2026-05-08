@@ -8,10 +8,12 @@ import {
   type CartResponse,
 } from '../services/cartService';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/formatPrice';
 
 export const CartPage = (): JSX.Element => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [cartData, setCartData] = useState<CartResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,6 +55,7 @@ export const CartPage = (): JSX.Element => {
     try {
       await updateCartItem(cartData.cart.id, itemId, newQty);
       await loadCart();
+      showToast('Cart updated.', 'success');
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Failed to update');
     } finally {
@@ -66,6 +69,7 @@ export const CartPage = (): JSX.Element => {
     try {
       await removeCartItem(cartData.cart.id, itemId);
       await loadCart();
+      showToast('Item removed from cart.', 'info');
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Failed to remove');
     } finally {
@@ -190,7 +194,14 @@ export const CartPage = (): JSX.Element => {
         <button
           type="button"
           className="btn btn-primary btn-lg d-inline-flex align-items-center gap-2"
-          onClick={() => navigate('/checkout')}
+          onClick={() => {
+            if (!isAuthenticated) {
+              showToast('You need an account to continue checkout.', 'warning');
+              navigate('/login?next=/checkout');
+              return;
+            }
+            navigate('/checkout');
+          }}
         >
           <i className="bi bi-credit-card-2-front" aria-hidden />
           Proceed to checkout

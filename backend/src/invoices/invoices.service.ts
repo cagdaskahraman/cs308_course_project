@@ -13,7 +13,7 @@ import { PaymentResultDto } from '../payments/dto/payment-result.dto';
 import { Order } from '../orders/entities/order.entity';
 import { InvoiceDto, InvoiceLineItemDto } from './dto/invoice.dto';
 import { Invoice } from './entities/invoice.entity';
-import { InvoiceMailerService } from './invoice-mailer.service';
+import { InvoiceMailPayload, InvoiceMailerService } from './invoice-mailer.service';
 import { InvoicePdfService } from './invoice-pdf.service';
 
 @Injectable()
@@ -39,14 +39,21 @@ export class InvoicesService {
     manager: EntityManager,
     order: Order,
     payment: PaymentResultDto,
-    billingEmail: string,
+    billing: {
+      email: string;
+      name: string;
+      address: string;
+      taxId?: string | null;
+    },
   ): Promise<Invoice> {
     const invoiceNumber = InvoicesService.formatInvoiceNumber(new Date());
 
     const invoice = manager.create(Invoice, {
       invoiceNumber,
-      billingEmail,
-      billingName: payment.cardHolder,
+      billingEmail: billing.email,
+      billingName: billing.name,
+      billingAddress: billing.address,
+      taxId: billing.taxId ?? null,
       cardLast4: payment.cardLast4,
       authorizationReference: payment.authorizationReference,
       subtotal: order.totalPrice,
@@ -61,7 +68,7 @@ export class InvoicesService {
     const dto = await this.getByOrderId(orderId);
     const pdf = this.pdfService.generate(dto);
     this.writePdfToDisk(dto.invoiceNumber, pdf);
-    this.mailer.sendInvoice(dto, pdf);
+    await this.mailer.sendInvoice(dto, pdf);
     return dto;
   }
 
@@ -90,6 +97,17 @@ export class InvoicesService {
   async renderPdfByOrderId(orderId: string): Promise<{ dto: InvoiceDto; pdf: Buffer }> {
     const dto = await this.getByOrderId(orderId);
     return { dto, pdf: this.pdfService.generate(dto) };
+  }
+
+  async getMailDispatchByOrderId(orderId: string): Promise<InvoiceMailPayload> {
+    const dto = await this.getByOrderId(orderId);
+    const dispatch = this.mailer.getDispatchForInvoice(dto.invoiceNumber);
+    if (!dispatch) {
+      throw new NotFoundException(
+        `Invoice email dispatch not found for order ${orderId}`,
+      );
+    }
+    return dispatch;
   }
 
   async assertOrderAccess(
@@ -163,6 +181,8 @@ export class InvoicesService {
       orderId: invoice.order.id,
       billingEmail: invoice.billingEmail,
       billingName: invoice.billingName,
+      taxId: invoice.taxId,
+      billingAddress: invoice.billingAddress,
       cardLast4: invoice.cardLast4,
       authorizationReference: invoice.authorizationReference,
       items,

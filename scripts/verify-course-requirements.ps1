@@ -66,7 +66,12 @@ Assert-True '5: GET approved reviews for product succeeds' ($null -ne $revs)
 $email = ('verify_' + [guid]::NewGuid().ToString('N').Substring(0, 10) + '@test.local')
 $pwd = 'VerifyTest123!'
 Invoke-RestMethod -Method Post -Uri "$base/auth/register" -ContentType 'application/json' `
-  -Body (@{ email = $email; password = $pwd; confirmPassword = $pwd } | ConvertTo-Json) | Out-Null
+  -Body (@{
+    email = $email
+    fullName = 'Verify User'
+    password = $pwd
+    confirmPassword = $pwd
+  } | ConvertTo-Json) | Out-Null
 $login = Invoke-RestMethod -Method Post -Uri "$base/auth/login" -ContentType 'application/json' `
   -Body (@{ email = $email; password = $pwd } | ConvertTo-Json)
 $token = $login.accessToken

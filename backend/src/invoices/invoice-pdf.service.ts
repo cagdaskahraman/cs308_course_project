@@ -12,25 +12,35 @@ export class InvoicePdfService {
   generate(invoice: InvoiceDto): Buffer {
     const lines: string[] = [];
     lines.push('ELECTROSTORE - INVOICE');
-    lines.push(`Invoice No: ${invoice.invoiceNumber}`);
-    lines.push(`Issued At : ${invoice.issuedAt}`);
-    lines.push(`Order Id  : ${invoice.orderId}`);
-    lines.push(`Authz Ref : ${invoice.authorizationReference}`);
+    lines.push('=========================================');
+    lines.push(`Invoice Number : ${invoice.invoiceNumber}`);
+    lines.push(`Issued At      : ${invoice.issuedAt}`);
+    lines.push(`Order Id       : ${invoice.orderId}`);
+    lines.push(`Auth Ref       : ${invoice.authorizationReference}`);
     lines.push('');
-    lines.push(`Billed To : ${invoice.billingName}`);
+    lines.push('Customer');
+    lines.push('--------');
+    lines.push(`Name      : ${invoice.billingName}`);
     lines.push(`Email     : ${invoice.billingEmail}`);
+    lines.push(`Address   : ${invoice.billingAddress}`);
     lines.push(`Card      : **** **** **** ${invoice.cardLast4}`);
     lines.push('');
     lines.push('Items');
-    lines.push('------');
+    lines.push('-----------------------------------------');
     for (const it of invoice.items) {
       lines.push(
-        `${it.quantity} x ${it.name} @ ${it.unitPrice.toFixed(2)} = ${it.lineTotal.toFixed(2)}`,
+        `${it.name}`,
+      );
+      lines.push(
+        `  qty:${it.quantity}  unit:${it.unitPrice.toFixed(2)}  line:${it.lineTotal.toFixed(2)}`,
       );
     }
     lines.push('');
-    lines.push(`Subtotal: ${invoice.subtotal.toFixed(2)}`);
-    lines.push(`Total   : ${invoice.total.toFixed(2)}`);
+    lines.push('-----------------------------------------');
+    lines.push(`Subtotal       : ${invoice.subtotal.toFixed(2)}`);
+    lines.push(`Total Charged  : ${invoice.total.toFixed(2)}`);
+    lines.push('=========================================');
+    lines.push('Thank you for shopping with ElectroStore.');
 
     return InvoicePdfService.buildPdf(lines);
   }

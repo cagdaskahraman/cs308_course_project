@@ -22,7 +22,7 @@ export type Review = {
   productId: string;
   userId: string;
   rating: number;
-  comment: string;
+  comment: string | null;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 };
@@ -30,7 +30,6 @@ export type Review = {
 export type CreateReviewPayload = {
   productId: string;
   rating: number;
-  comment: string;
 };
 
 export async function getApprovedReviews(productId: string): Promise<Review[]> {
@@ -50,4 +49,33 @@ export async function submitReview(payload: CreateReviewPayload, token: string):
   });
   if (!res.ok) throw new Error(await messageFromFailedResponse(res));
   return res.json() as Promise<Review>;
+}
+
+export async function submitReviewComment(
+  productId: string,
+  comment: string,
+  token: string,
+): Promise<Review> {
+  const res = await fetch(`${apiBaseUrl}/reviews/product/${productId}/comment`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ comment }),
+  });
+  if (!res.ok) throw new Error(await messageFromFailedResponse(res));
+  return res.json() as Promise<Review>;
+}
+
+export async function getMyReviewForProduct(
+  productId: string,
+  token: string,
+): Promise<Review | null> {
+  const res = await fetch(`${apiBaseUrl}/reviews/product/${productId}/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(await messageFromFailedResponse(res));
+  return res.json() as Promise<Review | null>;
 }

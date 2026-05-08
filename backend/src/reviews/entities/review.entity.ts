@@ -26,8 +26,12 @@ export class Review {
   rating!: number;
 
   @ApiProperty()
-  @Column({ type: 'text' })
-  comment!: string;
+  @Column({ type: 'text', nullable: true })
+  comment!: string | null;
+
+  @ApiProperty()
+  @Column({ name: 'pending_comment', type: 'text', nullable: true })
+  pendingComment!: string | null;
 
   @ApiProperty({ enum: ReviewStatus })
   @Column({

@@ -30,6 +30,8 @@ This project is an e-commerce platform for an electronics store. It includes cus
 
 ## Setup Instructions
 
+For Windows quick setup, see `REQUIREMENTS.md` and run `start.bat`.
+
 ### Prerequisites
 - Node.js (v20+ recommended)
 - npm
