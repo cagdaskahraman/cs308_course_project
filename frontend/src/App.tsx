@@ -11,6 +11,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { AdminReviewsPage } from './pages/AdminReviewsPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminOrdersPage } from './pages/AdminOrdersPage';
+import { AdminProductsPage } from './pages/AdminProductsPage';
 
 export const App = (): JSX.Element => (
   <div className="app-bg min-vh-100">
@@ -31,6 +32,7 @@ export const App = (): JSX.Element => (
           <Route path="/admin/reviews" element={<AdminReviewsPage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
+          <Route path="/admin/products" element={<AdminProductsPage />} />
         </Routes>
       </section>
     </main>
