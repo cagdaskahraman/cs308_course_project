@@ -52,7 +52,7 @@ export class ProductsService {
       const dir = options.sortOrder === 'desc' ? 'DESC' : 'ASC';
       if (options.sortBy === 'popularity') {
         // Popularity is strictly review count based.
-        qb.orderBy('COUNT(r.id)', 'DESC').addOrderBy('p.name', 'ASC');
+        qb.orderBy('review_count', 'DESC').addOrderBy('p.name', 'ASC');
       } else {
         qb.orderBy('p.price', dir);
       }

@@ -65,6 +65,13 @@ describe('ProductsService', () => {
     expect(queryBuilder.orderBy).toHaveBeenCalledWith('p.price', 'DESC');
   });
 
+  it('orders by review count descending when sortBy=popularity', async () => {
+    await service.findAll({ sortBy: 'popularity', sortOrder: 'asc' });
+
+    expect(queryBuilder.orderBy).toHaveBeenCalledWith('review_count', 'DESC');
+    expect(queryBuilder.addOrderBy).toHaveBeenCalledWith('p.name', 'ASC');
+  });
+
   it('throws not found for unknown id', async () => {
     queryBuilder.getRawAndEntities.mockResolvedValue({
       entities: [],
