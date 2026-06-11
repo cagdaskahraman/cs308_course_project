@@ -39,12 +39,13 @@ export const RegisterPage = (): JSX.Element => {
   };
 
   return (
-    <div className="row justify-content-center">
-      <div className="col-12 col-md-6 col-lg-4">
-        <h2 className="mb-3 d-inline-flex align-items-center gap-2">
-          <i className="bi bi-person-plus-fill text-primary" aria-hidden />
-          Register
-        </h2>
+    <div className="auth-shell">
+      <div className="auth-card">
+        <div className="auth-card__icon">
+          <i className="bi bi-person-plus-fill" aria-hidden />
+        </div>
+        <h2 className="auth-card__title">Create your account</h2>
+        <p className="auth-card__subtitle">Join ElectroStore to save your profile, track orders, and checkout securely.</p>
         {error && (
           <div className="alert alert-danger d-flex align-items-center gap-2" role="alert">
             <i className="bi bi-exclamation-circle-fill" aria-hidden />
@@ -139,8 +140,8 @@ export const RegisterPage = (): JSX.Element => {
             )}
           </button>
         </form>
-        <p className="mt-3 mb-0">
-          Already have an account? <Link to="/login">Login</Link>
+        <p className="mt-4 mb-0 text-center text-secondary">
+          Already have an account? <Link to="/login" className="fw-semibold">Sign in</Link>
         </p>
       </div>
     </div>

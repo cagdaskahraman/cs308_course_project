@@ -4,6 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { getSavedCartId, getCart, type CartResponse } from '../services/cartService';
 import { checkout, type PaymentDetails } from '../services/orderService';
 import { isAuthFailure } from '../services/authService';
+import { getMyProfile } from '../services/userService';
+import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
+import { PageHeader } from '../components/PageHeader';
 import { formatPrice } from '../utils/formatPrice';
 
 function luhnValid(cardNumber: string): boolean {
@@ -51,6 +55,14 @@ export const CheckoutPage = (): JSX.Element => {
       navigate('/login?next=/checkout', { replace: true });
       return;
     }
+    void getMyProfile()
+      .then((profile) => {
+        if (profile.homeAddress) {
+          setDeliveryAddress(profile.homeAddress);
+        }
+      })
+      .catch(() => undefined);
+
     const cartId = getSavedCartId();
     if (!cartId) {
       setError('');
@@ -144,25 +156,17 @@ export const CheckoutPage = (): JSX.Element => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="text-center py-5 text-secondary" role="status">
-        <div className="spinner-border text-primary mb-3" aria-hidden />
-        <p className="fs-5 mb-0">Loading checkout…</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState label="Loading checkout…" />;
 
   if (!cartData || cartData.cart.items.length === 0) {
     return (
-      <div className="text-center py-5">
-        <i className="bi bi-bag-x display-4 text-secondary mb-3 d-block" aria-hidden />
-        <h4 className="fw-semibold">Nothing to checkout</h4>
-        <Link to="/" className="btn btn-primary mt-3 d-inline-flex align-items-center gap-2">
-          <i className="bi bi-grid-1x2-fill" aria-hidden />
-          Browse products
-        </Link>
-      </div>
+      <EmptyState
+        icon="bi-bag-x"
+        title="Nothing to checkout"
+        description="Add items to your cart before completing your purchase."
+        actionLabel="Browse products"
+        actionTo="/"
+      />
     );
   }
 
@@ -170,65 +174,67 @@ export const CheckoutPage = (): JSX.Element => {
 
   return (
     <>
-      <h2 className="fw-bold mb-4 d-inline-flex align-items-center gap-2">
-        <i className="bi bi-bag-check-fill text-primary" aria-hidden />
-        Checkout
-      </h2>
+      <PageHeader
+        icon="bi-bag-check-fill"
+        title="Checkout"
+        subtitle="Review your order and complete payment securely."
+        badge={`${cart.items.length} item${cart.items.length === 1 ? '' : 's'}`}
+      />
       {error && (
         <div className="alert alert-danger d-flex align-items-center gap-2" role="alert">
           <i className="bi bi-exclamation-circle-fill" aria-hidden />
           <span>{error}</span>
         </div>
       )}
-      <div className="card border-0 shadow-sm mb-3">
-        <div className="card-body">
-          <h5 className="card-title mb-3 d-inline-flex align-items-center gap-2">
-            <i className="bi bi-receipt-cutoff" aria-hidden />
-            Order summary
-          </h5>
-          <ul className="list-group list-group-flush mb-3">
-            {cart.items.map((item) => (
-              <li key={item.id} className="list-group-item d-flex justify-content-between align-items-center">
-                <span>{item.product.name} &times; {item.quantity}</span>
-                <span className="fw-semibold">{formatPrice(item.quantity * item.product.price)}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="d-flex justify-content-between align-items-center border-top pt-3">
-            <h4 className="mb-0">Total: {formatPrice(totalPrice)}</h4>
-            <div className="d-flex flex-wrap gap-2">
-              <Link to="/cart" className="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
-                <i className="bi bi-arrow-left" aria-hidden />
-                Back to cart
-              </Link>
-              <button
-                type="button"
-                className="btn btn-primary btn-lg d-inline-flex align-items-center gap-2"
-                disabled={submitting}
-                onClick={() => void handleCheckout()}
-              >
-                {submitting ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm" aria-hidden />
-                    Placing order…
-                  </>
-                ) : (
-                  <>
-                    <i className="bi bi-lock-fill" aria-hidden />
-                    Pay & place order
-                  </>
-                )}
-              </button>
+      <div className="content-card">
+        <h2 className="content-card__title">
+          <i className="bi bi-receipt-cutoff" aria-hidden />
+          Order summary
+        </h2>
+        <div className="mb-3">
+          {cart.items.map((item) => (
+            <div key={item.id} className="checkout-line">
+              <span>{item.product.name} &times; {item.quantity}</span>
+              <span className="fw-semibold">{formatPrice(item.quantity * item.product.price)}</span>
             </div>
+          ))}
+        </div>
+        <div className="cart-summary d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <div className="small text-secondary text-uppercase fw-bold">Total due</div>
+            <div className="fs-3 fw-bold mb-0">{formatPrice(totalPrice)}</div>
+          </div>
+          <div className="d-flex flex-wrap gap-2">
+            <Link to="/cart" className="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+              <i className="bi bi-arrow-left" aria-hidden />
+              Back to cart
+            </Link>
+            <button
+              type="button"
+              className="btn btn-primary btn-lg d-inline-flex align-items-center gap-2"
+              disabled={submitting}
+              onClick={() => void handleCheckout()}
+            >
+              {submitting ? (
+                <>
+                  <span className="spinner-border spinner-border-sm" aria-hidden />
+                  Placing order…
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-lock-fill" aria-hidden />
+                  Pay & place order
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
-      <div className="card border-0 shadow-sm">
-        <div className="card-body">
-          <h5 className="card-title mb-3 d-inline-flex align-items-center gap-2">
-            <i className="bi bi-credit-card-2-front" aria-hidden />
-            Payment
-          </h5>
+      <div className="content-card mb-0">
+        <h2 className="content-card__title">
+          <i className="bi bi-credit-card-2-front" aria-hidden />
+          Payment details
+        </h2>
           <div className="row g-3">
             <div className="col-12">
               <label htmlFor="cardHolder" className="form-label d-inline-flex align-items-center gap-2">
@@ -330,7 +336,6 @@ export const CheckoutPage = (): JSX.Element => {
               />
             </div>
           </div>
-        </div>
       </div>
     </>
   );

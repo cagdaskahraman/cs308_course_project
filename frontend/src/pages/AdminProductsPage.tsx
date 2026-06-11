@@ -3,6 +3,8 @@ import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { AdminModerationNav } from '../components/AdminModerationNav';
+import { LoadingState } from '../components/LoadingState';
+import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import {
@@ -65,7 +67,7 @@ export const AdminProductsPage = (): JSX.Element => {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const canManageCatalog =
-    user?.role === 'product_manager' || user?.role === 'admin';
+    user?.role === 'product_manager';
 
   const load = useCallback(async () => {
     if (!canManageCatalog) return;
@@ -262,37 +264,27 @@ export const AdminProductsPage = (): JSX.Element => {
     return (
       <div className="alert alert-warning mt-5 d-flex align-items-start gap-2">
         <i className="bi bi-exclamation-triangle-fill mt-1" aria-hidden />
-        <span>Only product managers and administrators can manage catalog products.</span>
+        <span>Only product managers can manage catalog products.</span>
       </div>
     );
   }
 
-  if (loading) {
-    return (
-      <div className="text-center py-5 text-secondary" role="status">
-        <div className="spinner-border text-primary mb-3" aria-hidden />
-        <p className="fs-5 mb-0">Loading catalog management…</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState label="Loading catalog management…" />;
 
   return (
     <>
       <AdminModerationNav active="products" />
-      <div className="d-flex flex-wrap justify-content-between gap-3 mb-4">
-        <div>
-          <h2 className="fw-bold mb-1 d-inline-flex align-items-center gap-2">
-            <i className="bi bi-box-seam text-primary" aria-hidden />
-            Catalog management
-          </h2>
-          <p className="text-secondary mb-0">
-            Add products, manage stock, and maintain category names. Pricing is handled by sales managers.
-          </p>
-        </div>
-        <button type="button" className="btn btn-outline-secondary align-self-start" onClick={resetForm}>
+      <PageHeader
+        icon="bi-box-seam"
+        title="Catalog management"
+        subtitle="Add products, manage stock, and maintain category names. Pricing is handled by sales managers."
+        badge={`${products.length} products`}
+      >
+        <button type="button" className="btn btn-outline-primary" onClick={resetForm}>
+          <i className="bi bi-plus-lg me-1" aria-hidden />
           New product
         </button>
-      </div>
+      </PageHeader>
 
       {error ? (
         <div className="alert alert-danger d-flex align-items-center gap-2" role="alert">
@@ -301,13 +293,13 @@ export const AdminProductsPage = (): JSX.Element => {
         </div>
       ) : null}
 
-      <div className="row g-4">
-        <div className="col-lg-5">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <h5 className="card-title mb-3">
+      <div className="row g-4 admin-products-layout">
+        <div className="col-12 col-xl-4">
+          <div className="content-card">
+              <h2 className="content-card__title">
+                <i className="bi bi-pencil-square" aria-hidden />
                 {editingId ? 'Edit product' : 'Create product'}
-              </h5>
+              </h2>
               <form onSubmit={(e) => void handleSubmit(e)}>
                 <div className="row g-3">
                   <div className="col-md-6">
@@ -363,12 +355,13 @@ export const AdminProductsPage = (): JSX.Element => {
                   ) : null}
                 </div>
               </form>
-            </div>
           </div>
 
-          <div className="card border-0 shadow-sm mt-4">
-            <div className="card-body">
-              <h5 className="card-title mb-3">Categories</h5>
+          <div className="content-card">
+              <h2 className="content-card__title">
+                <i className="bi bi-tags" aria-hidden />
+                Categories
+              </h2>
               <form className="d-flex gap-2 mb-3" onSubmit={(e) => void addCategory(e)}>
                 <input className="form-control" placeholder="New category" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} />
                 <button type="submit" className="btn btn-outline-primary">Add</button>
@@ -381,44 +374,44 @@ export const AdminProductsPage = (): JSX.Element => {
                   </span>
                 ))}
               </div>
-            </div>
           </div>
         </div>
 
-        <div className="col-lg-7">
-          <div className="card border-0 shadow-sm mb-3">
-            <div className="card-body">
-              <div className="row g-2">
-                <div className="col-md-7">
-                  <input className="form-control" placeholder="Search name, model, serial, description" value={search} onChange={(e) => setSearch(e.target.value)} />
-                </div>
-                <div className="col-md-3">
-                  <select className="form-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                    <option value="">All categories</option>
-                    {sortedCategories.map((category) => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-2 d-grid">
-                  <button type="button" className="btn btn-outline-secondary" onClick={() => void load()}>
-                    Filter
-                  </button>
-                </div>
+        <div className="col-12 col-xl-8">
+          <div className="content-card">
+            <h2 className="content-card__title">
+              <i className="bi bi-funnel" aria-hidden />
+              Product inventory
+            </h2>
+            <div className="row g-2">
+              <div className="col-md-7">
+                <input className="form-control" placeholder="Search name, model, serial, description" value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
+              <div className="col-md-3">
+                <select className="form-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                  <option value="">All categories</option>
+                  {sortedCategories.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-2 d-grid">
+                <button type="button" className="btn btn-outline-secondary" onClick={() => void load()}>
+                  Filter
+                </button>
               </div>
             </div>
           </div>
 
-          <div className="table-responsive shadow-sm rounded border bg-white">
-            <table className="table table-hover align-middle mb-0">
-              <thead className="table-light">
+          <div className="admin-table-wrap data-card">
+            <table className="table table-hover align-middle mb-0 admin-products-table">
+              <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Category</th>
-                  <th>Price</th>
-                  <th>Stock</th>
-                  <th>Model / Serial</th>
-                  <th className="text-end">Actions</th>
+                  <th>Product</th>
+                  <th className="admin-products-table__col-narrow">Category</th>
+                  <th className="admin-products-table__col-narrow">Price</th>
+                  <th className="admin-products-table__col-stock">Stock</th>
+                  <th className="admin-products-table__col-actions text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -426,30 +419,82 @@ export const AdminProductsPage = (): JSX.Element => {
                   const draft = stockDrafts[product.id] ?? String(product.stockQuantity);
                   return (
                     <tr key={product.id}>
-                      <td>
+                      <td className="admin-products-table__product">
                         <div className="fw-semibold">{product.name}</div>
-                        <div className="small text-secondary text-truncate" style={{ maxWidth: 220 }}>
-                          {product.description}
+                        <div className="small text-secondary">
+                          {product.model ?? 'N/A'} · {product.serialNumber ?? 'No serial'}
                         </div>
                       </td>
-                      <td><span className="badge text-bg-light">{product.category}</span></td>
-                      <td>{product.price > 0 ? formatPrice(product.price) : 'Awaiting pricing'}</td>
-                      <td style={{ minWidth: 170 }}>
-                        <div className="input-group input-group-sm">
-                          <button type="button" className="btn btn-outline-secondary" disabled={busyId === product.id || product.stockQuantity === 0} onClick={() => void applyStock(product, Math.max(0, product.stockQuantity - 1))}>-</button>
-                          <input className="form-control text-center" type="number" min="0" step="1" value={draft} onChange={(e) => setStockDrafts((prev) => ({ ...prev, [product.id]: e.target.value }))} />
-                          <button type="button" className="btn btn-outline-secondary" disabled={busyId === product.id} onClick={() => void applyStock(product, product.stockQuantity + 1)}>+</button>
-                          <button type="button" className="btn btn-outline-primary" disabled={busyId === product.id} onClick={() => void applyStock(product)}>Save</button>
+                      <td className="admin-products-table__col-narrow">
+                        <span className="badge text-bg-light">{product.category}</span>
+                      </td>
+                      <td className="admin-products-table__col-narrow text-nowrap">
+                        {product.price > 0 ? formatPrice(product.price) : 'Price unavailable'}
+                      </td>
+                      <td className="admin-products-table__col-stock">
+                        <div className="stock-editor">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary stock-editor__step"
+                            aria-label="Decrease stock"
+                            disabled={busyId === product.id || product.stockQuantity === 0}
+                            onClick={() => void applyStock(product, Math.max(0, product.stockQuantity - 1))}
+                          >
+                            <i className="bi bi-dash-lg" aria-hidden />
+                          </button>
+                          <input
+                            className="form-control form-control-sm stock-editor__input"
+                            type="number"
+                            min="0"
+                            step="1"
+                            aria-label={`Stock for ${product.name}`}
+                            value={draft}
+                            onChange={(e) => setStockDrafts((prev) => ({ ...prev, [product.id]: e.target.value }))}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary stock-editor__step"
+                            aria-label="Increase stock"
+                            disabled={busyId === product.id}
+                            onClick={() => void applyStock(product, product.stockQuantity + 1)}
+                          >
+                            <i className="bi bi-plus-lg" aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-primary stock-editor__save"
+                            title="Save stock"
+                            aria-label="Save stock"
+                            disabled={busyId === product.id}
+                            onClick={() => void applyStock(product)}
+                          >
+                            {busyId === product.id ? (
+                              <span className="spinner-border spinner-border-sm" aria-hidden />
+                            ) : (
+                              <i className="bi bi-check-lg" aria-hidden />
+                            )}
+                          </button>
                         </div>
                       </td>
-                      <td>
-                        <div>{product.model ?? 'N/A'}</div>
-                        <div className="small text-secondary">{product.serialNumber ?? 'No serial'}</div>
-                      </td>
-                      <td className="text-end">
-                        <div className="btn-group btn-group-sm">
-                          <button type="button" className="btn btn-outline-primary" onClick={() => editProduct(product)}>Edit</button>
-                          <button type="button" className="btn btn-outline-danger" disabled={busyId === product.id} onClick={() => void removeProduct(product)}>Delete</button>
+                      <td className="admin-products-table__col-actions text-end">
+                        <div className="admin-row-actions">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            title="Edit product"
+                            onClick={() => editProduct(product)}
+                          >
+                            <i className="bi bi-pencil" aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger"
+                            title="Delete product"
+                            disabled={busyId === product.id}
+                            onClick={() => void removeProduct(product)}
+                          >
+                            <i className="bi bi-trash" aria-hidden />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -457,7 +502,7 @@ export const AdminProductsPage = (): JSX.Element => {
                 })}
                 {products.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center text-secondary py-4">
+                    <td colSpan={5} className="text-center text-secondary py-4">
                       No products found.
                     </td>
                   </tr>

@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
+import { SiteFooter } from './components/SiteFooter';
 import { CatalogPage } from './pages/CatalogPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { CartPage } from './pages/CartPage';
@@ -20,8 +21,8 @@ export const App = (): JSX.Element => (
     <div className="bg-orb bg-orb-one" aria-hidden />
     <div className="bg-orb bg-orb-two" aria-hidden />
     <Navbar />
-    <main className="container py-4 py-lg-5 page-enter">
-      <section className="content-shell p-3 p-lg-4">
+    <main className="container app-main py-4 py-lg-5 page-enter">
+      <section className="content-shell p-3 p-lg-5">
         <Routes>
           <Route path="/" element={<CatalogPage />} />
           <Route path="/products/:id" element={<ProductDetailPage />} />
@@ -40,5 +41,6 @@ export const App = (): JSX.Element => (
         </Routes>
       </section>
     </main>
+    <SiteFooter />
   </div>
 );

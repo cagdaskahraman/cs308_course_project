@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { getCategories, getProducts } from '../services/productService';
 import { getOrCreateCartId, addCartItem } from '../services/cartService';
 import { useToast } from '../context/ToastContext';
+import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
 import { ProductDiscountBadge, ProductPriceDisplay } from '../components/ProductPriceDisplay';
+import { StarRating } from '../components/StarRating';
 import { getProductPricing } from '../utils/productPricing';
 import type { Product } from '../types/product';
 
@@ -42,6 +45,8 @@ export const CatalogPage = (): JSX.Element => {
     if (normalized === 'phone') return 'bi-phone';
     if (normalized === 'tablet') return 'bi-tablet';
     if (normalized === 'accessory') return 'bi-usb-symbol';
+    if (normalized === 'monitor') return 'bi-display';
+    if (normalized === 'camera') return 'bi-camera';
     return 'bi-grid';
   };
 
@@ -96,14 +101,7 @@ export const CatalogPage = (): JSX.Element => {
   );
 
   const content = useMemo(() => {
-    if (loading) {
-      return (
-        <div className="text-center py-5 text-secondary" role="status">
-          <div className="spinner-border text-primary mb-3" aria-hidden />
-          <p className="fs-5 mb-0">Loading products…</p>
-        </div>
-      );
-    }
+    if (loading) return <LoadingState label="Loading products…" />;
     if (error) {
       return (
         <div className="alert alert-danger d-flex align-items-center gap-2 mt-4" role="alert">
@@ -114,122 +112,136 @@ export const CatalogPage = (): JSX.Element => {
     }
     if (products.length === 0) {
       return (
-        <div className="text-center py-5">
-          <i className="bi bi-search display-4 text-secondary mb-3 d-block" aria-hidden />
-          <p className="fs-5 text-secondary mb-0">No products found.</p>
-        </div>
+        <EmptyState
+          icon="bi-search"
+          title="No products found"
+          description="Try a different search term or category filter."
+        />
       );
     }
 
     return (
-      <div className="row g-4">
-        {products.map((product, index) => (
-          <div
-            className="col-12 col-md-6 col-lg-4 stagger-item"
-            key={product.id}
-            style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}
-          >
-            <article className="card product-card h-100 border-0 shadow-sm">
-              <Link to={`/products/${product.id}`} className="d-block overflow-hidden product-image-wrap">
-                <ProductDiscountBadge product={product} />
-                <img className="card-img-top product-image" src={product.imageUrl} alt={product.name} />
-              </Link>
-              <div className="card-body d-flex flex-column">
-                <div className="d-flex justify-content-between align-items-start mb-2">
-                  <Link to={`/products/${product.id}`} className="text-decoration-none text-dark">
-                    <h5 className="card-title mb-0">{product.name}</h5>
-                  </Link>
-                  <span className="badge text-bg-dark d-inline-flex align-items-center gap-1">
-                    <i className="bi bi-tag-fill" aria-hidden />
-                    {product.category}
-                  </span>
+      <div className="row g-4 catalog-grid">
+        {products.map((product, index) => {
+          const pricing = getProductPricing(product);
+          return (
+            <div
+              className="col-12 col-sm-6 col-xl-4 stagger-item"
+              key={product.id}
+              style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}
+            >
+              <article className="card product-card h-100 border-0">
+                <Link to={`/products/${product.id}`} className="d-block overflow-hidden product-image-wrap">
+                  <ProductDiscountBadge product={product} />
+                  {pricing.hasDiscount ? (
+                    <span className="product-card__flag">
+                      <i className="bi bi-stars" aria-hidden />
+                      Deal
+                    </span>
+                  ) : null}
+                  <img className="card-img-top product-image" src={product.imageUrl} alt={product.name} loading="lazy" />
+                </Link>
+                <div className="card-body d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <Link to={`/products/${product.id}`} className="text-decoration-none text-dark flex-grow-1">
+                      <h5 className="card-title mb-0">{product.name}</h5>
+                    </Link>
+                    <span className="category-pill">
+                      <i className="bi bi-tag-fill" aria-hidden />
+                      {product.category}
+                    </span>
+                  </div>
+                  <p className="card-text text-secondary flex-grow-1 small mb-3 product-card__desc">
+                    {product.description.length > 96
+                      ? `${product.description.slice(0, 96)}…`
+                      : product.description}
+                  </p>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="rating-pill">
+                      {(product.reviewCount ?? 0) > 0 ? (
+                        <>
+                          <StarRating value={Math.round(product.averageRating ?? 0)} size="sm" />
+                          <span>{(product.averageRating ?? 0).toFixed(1)}</span>
+                        </>
+                      ) : (
+                        <span className="text-secondary">No reviews yet</span>
+                      )}
+                    </span>
+                    <span className="text-secondary small">
+                      {product.reviewCount ?? 0} review{(product.reviewCount ?? 0) === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-end mt-auto flex-wrap gap-2">
+                    <ProductPriceDisplay product={product} size="md" showSavings={pricing.hasDiscount} />
+                    <span className={`stock-pill ${product.stockQuantity > 0 ? 'stock-pill--in' : 'stock-pill--out'}`}>
+                      <i className={`bi ${product.stockQuantity > 0 ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}`} aria-hidden />
+                      {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
+                    </span>
+                  </div>
+                  <div className="product-card__actions">
+                    <Link to={`/products/${product.id}`} className="btn btn-outline-secondary btn-sm product-card__view">
+                      <i className="bi bi-eye" aria-hidden />
+                      View
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm product-card__cart"
+                      disabled={product.stockQuantity <= 0 || product.price <= 0 || addingId === product.id}
+                      onClick={() => void handleAddToCart(product)}
+                    >
+                      {product.stockQuantity <= 0 ? (
+                        <>
+                          <i className="bi bi-slash-circle" aria-hidden />
+                          Out of stock
+                        </>
+                      ) : product.price <= 0 ? (
+                        <>
+                          <i className="bi bi-hourglass-split" aria-hidden />
+                          Price unavailable
+                        </>
+                      ) : addingId === product.id ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm" aria-hidden />
+                          Adding…
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-cart-plus" aria-hidden />
+                          Add to cart
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-secondary small mb-2 d-inline-flex align-items-center gap-1">
-                  <i className="bi bi-hash" aria-hidden />
-                  {product.id.slice(0, 8)}…
-                </p>
-                <p className="card-text text-secondary flex-grow-1 small">{product.description}</p>
-                <div className="d-flex align-items-center justify-content-between small text-secondary">
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <i className="bi bi-star-fill text-warning" aria-hidden />
-                    {(product.reviewCount ?? 0) > 0
-                      ? (product.averageRating ?? 0).toFixed(1)
-                      : 'No Rating Yet'}
-                  </span>
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <i className="bi bi-chat-left-text" aria-hidden />
-                    {product.reviewCount ?? 0} review
-                    {(product.reviewCount ?? 0) === 1 ? '' : 's'}
-                  </span>
-                </div>
-                <div className="d-flex justify-content-between align-items-end mt-2 flex-wrap gap-2">
-                  <ProductPriceDisplay product={product} size="md" showSavings={getProductPricing(product).hasDiscount} />
-                  <span
-                    className={`small d-inline-flex align-items-center gap-1 ${product.stockQuantity > 0 ? 'text-success' : 'text-danger'}`}
-                  >
-                    <i className={`bi ${product.stockQuantity > 0 ? 'bi-box-seam' : 'bi-x-octagon-fill'}`} aria-hidden />
-                    Stock: {product.stockQuantity}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm mt-3 w-100 d-inline-flex align-items-center justify-content-center gap-2"
-                  disabled={product.stockQuantity <= 0 || product.price <= 0 || addingId === product.id}
-                  onClick={() => void handleAddToCart(product)}
-                >
-                  {product.stockQuantity <= 0 ? (
-                    <>
-                      <i className="bi bi-slash-circle" aria-hidden />
-                      Out of stock
-                    </>
-                  ) : product.price <= 0 ? (
-                    <>
-                      <i className="bi bi-hourglass-split" aria-hidden />
-                      Awaiting pricing
-                    </>
-                  ) : addingId === product.id ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm" aria-hidden />
-                      Adding…
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-cart-plus" aria-hidden />
-                      Add to cart
-                    </>
-                  )}
-                </button>
-              </div>
-            </article>
-          </div>
-        ))}
+              </article>
+            </div>
+          );
+        })}
       </div>
     );
   }, [error, loading, products, addingId, handleAddToCart]);
 
   return (
     <>
-      <div className="hero-panel mb-4">
-        <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
-          <div>
-            <h1 className="h3 fw-bold mb-1 d-inline-flex align-items-center gap-2">
-              <i className="bi bi-shop-window text-primary" aria-hidden />
-              ElectroStore Catalog
-            </h1>
-            <p className="text-secondary mb-0">
-              Search, compare and add products with live stock visibility.
-            </p>
-          </div>
-          <span className="badge text-bg-light fs-6 px-3 py-2">
-            {products.length} products
-          </span>
+      <div className="catalog-banner mb-3">
+        <div className="catalog-banner__text">
+          <h1 className="catalog-banner__title">
+            <i className="bi bi-shop-window" aria-hidden />
+            Premium electronics
+          </h1>
+          <p className="catalog-banner__subtitle mb-0">
+            Browse products with live stock, reviews, and member pricing.
+          </p>
         </div>
+        <span className="catalog-banner__badge">
+          {loading ? '…' : `${products.length} products`}
+        </span>
       </div>
 
-      <div className="d-flex flex-wrap gap-2 mb-4 justify-content-center">
+      <div className="category-bar mb-3">
         <button
           type="button"
-          className={`btn rounded-pill d-inline-flex align-items-center gap-2 px-4 py-2 ${selectedCategory === null ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
+          className={`category-chip${selectedCategory === null ? ' is-active' : ''}`}
           onClick={() => setSelectedCategory(null)}
         >
           <i className="bi bi-grid-fill" aria-hidden />
@@ -239,7 +251,7 @@ export const CatalogPage = (): JSX.Element => {
           <button
             type="button"
             key={cat}
-            className={`btn rounded-pill d-inline-flex align-items-center gap-2 px-4 py-2 ${selectedCategory === cat ? 'btn-primary shadow-sm' : 'btn-outline-secondary'}`}
+            className={`category-chip${selectedCategory === cat ? ' is-active' : ''}`}
             onClick={() => setSelectedCategory(cat)}
           >
             <i className={`bi ${categoryIconClass(cat)}`} aria-hidden />
@@ -248,7 +260,7 @@ export const CatalogPage = (): JSX.Element => {
         ))}
       </div>
 
-      <div className="row g-2 mb-4 align-items-center">
+      <div className="search-toolbar row g-2 mb-4 align-items-center">
         <div className="col-12 col-md-8">
           <label htmlFor="catalogSearch" className="visually-hidden">
             Search products
