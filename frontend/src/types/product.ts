@@ -10,6 +10,7 @@ export type Product = {
   serialNumber?: string | null;
   warrantyStatus?: string | null;
   distributorInfo?: string | null;
+  popularity?: number;
   averageRating?: number;
   reviewCount?: number;
 };

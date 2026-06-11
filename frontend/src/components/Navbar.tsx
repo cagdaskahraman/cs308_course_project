@@ -63,6 +63,7 @@ export const Navbar = (): JSX.Element => {
               </li>
             )}
             {canModerateReviews && navLink('/admin/orders', 'Deliveries', 'bi-truck')}
+            {canModerateReviews && navLink('/admin/products', 'Products', 'bi-box-seam')}
             {canModerateReviews && navLink('/admin/reviews', 'Moderation', 'bi-shield-check')}
             {isAdmin && navLink('/admin/users', 'Users', 'bi-people-fill')}
             {isAuthenticated ? (
