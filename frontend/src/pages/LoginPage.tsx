@@ -5,6 +5,26 @@ import { useAuth } from '../context/AuthContext';
 import { login } from '../services/authService';
 import { getSavedCartId, mergeGuestCartWithUser } from '../services/cartService';
 
+const resolveSafeNextPath = (
+  rawNext: string | null,
+  role: 'customer' | 'product_manager' | 'admin',
+): string => {
+  if (!rawNext || !rawNext.startsWith('/')) return '/';
+
+  const isAdminArea = rawNext.startsWith('/admin');
+  if (!isAdminArea) return rawNext;
+
+  if (rawNext.startsWith('/admin/users')) {
+    return role === 'admin' ? rawNext : '/';
+  }
+
+  if (rawNext.startsWith('/admin/orders') || rawNext.startsWith('/admin/reviews')) {
+    return role === 'admin' || role === 'product_manager' ? rawNext : '/';
+  }
+
+  return '/';
+};
+
 export const LoginPage = (): JSX.Element => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,7 +49,7 @@ export const LoginPage = (): JSX.Element => {
       } catch {
         // Non-fatal: user still logged in even if cart merge fails.
       }
-      navigate(next, { replace: true });
+      navigate(resolveSafeNextPath(next, response.user.role), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
