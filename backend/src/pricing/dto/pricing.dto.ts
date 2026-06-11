@@ -64,5 +64,28 @@ export class RevenueSummaryDto {
   totalRevenue!: number;
 
   @ApiProperty()
+  totalCost!: number;
+
+  @ApiProperty({ description: 'Revenue minus estimated product cost.' })
+  totalProfit!: number;
+
+  @ApiProperty({ description: 'Negative profit when costs exceed revenue.' })
+  totalLoss!: number;
+
+  @ApiProperty()
   averageOrderValue!: number;
+}
+
+export class RevenueChartPointDto {
+  @ApiProperty({ example: '2026-06-01' })
+  date!: string;
+
+  @ApiProperty({ example: 1250.5 })
+  revenue!: number;
+
+  @ApiProperty({ example: 875.35 })
+  cost!: number;
+
+  @ApiProperty({ example: 375.15 })
+  profit!: number;
 }
