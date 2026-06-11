@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { UpdateProfileDto, UserProfileDto } from './dto/update-profile.dto';
 import { User, UserRole } from './entities/user.entity';
 
 export type AdminUserSummary = {
@@ -58,10 +59,7 @@ export class UsersService {
       }
     }
 
-    await this.usersRepository.update(
-      { id: targetUserId },
-      { role: newRole },
-    );
+    await this.usersRepository.update({ id: targetUserId }, { role: newRole });
 
     const updated = await this.usersRepository.findOne({
       where: { id: targetUserId },
@@ -72,5 +70,53 @@ export class UsersService {
     }
 
     return updated;
+  }
+
+  async getProfile(userId: string): Promise<UserProfileDto> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'email', 'fullName', 'taxId', 'homeAddress', 'role'],
+    });
+    if (!user) {
+      throw new NotFoundException('user not found');
+    }
+    return UsersService.toProfileDto(user);
+  }
+
+  async updateProfile(
+    userId: string,
+    dto: UpdateProfileDto,
+  ): Promise<UserProfileDto> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'email', 'fullName', 'taxId', 'homeAddress', 'role'],
+    });
+    if (!user) {
+      throw new NotFoundException('user not found');
+    }
+
+    if (dto.fullName !== undefined) {
+      user.fullName = dto.fullName.trim();
+    }
+    if (dto.taxId !== undefined) {
+      user.taxId = dto.taxId.trim() || null;
+    }
+    if (dto.homeAddress !== undefined) {
+      user.homeAddress = dto.homeAddress.trim() || null;
+    }
+
+    const saved = await this.usersRepository.save(user);
+    return UsersService.toProfileDto(saved);
+  }
+
+  private static toProfileDto(user: User): UserProfileDto {
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName ?? '',
+      taxId: user.taxId,
+      homeAddress: user.homeAddress,
+      role: user.role,
+    };
   }
 }
