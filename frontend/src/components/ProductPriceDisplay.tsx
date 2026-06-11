@@ -53,13 +53,13 @@ export const ProductDiscountBadge = ({
 }: {
   product: Pick<Product, 'price' | 'listPrice' | 'discountRate'>;
 }): JSX.Element | null => {
-  const { hasDiscount, discountRate } = getProductPricing(product);
+  const { hasDiscount } = getProductPricing(product);
   if (!hasDiscount) return null;
 
   return (
-    <span className="product-discount-ribbon" aria-hidden>
-      <span className="product-discount-ribbon__label">SALE</span>
-      <span className="product-discount-ribbon__rate">-{discountRate}%</span>
+    <span className="product-card__flag" aria-label="Deal">
+      <i className="bi bi-stars" aria-hidden />
+      Deal
     </span>
   );
 };

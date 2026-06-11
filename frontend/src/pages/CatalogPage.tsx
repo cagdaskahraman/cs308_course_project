@@ -133,12 +133,6 @@ export const CatalogPage = (): JSX.Element => {
               <article className="card product-card h-100 border-0">
                 <Link to={`/products/${product.id}`} className="d-block overflow-hidden product-image-wrap">
                   <ProductDiscountBadge product={product} />
-                  {pricing.hasDiscount ? (
-                    <span className="product-card__flag">
-                      <i className="bi bi-stars" aria-hidden />
-                      Deal
-                    </span>
-                  ) : null}
                   <img className="card-img-top product-image" src={product.imageUrl} alt={product.name} loading="lazy" />
                 </Link>
                 <div className="card-body d-flex flex-column">

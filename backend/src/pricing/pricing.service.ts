@@ -45,11 +45,23 @@ export class PricingService {
       throw new NotFoundException(`Product with id '${productId}' not found`);
     }
 
+    const previousDiscountRate = product.discountRate ?? 0;
+    const previousPrice = product.price;
     const discountRate = dto.discountRate ?? product.discountRate ?? 0;
     product.listPrice = dto.listPrice;
     product.discountRate = discountRate;
     product.price = PricingService.computeEffectivePrice(dto.listPrice, discountRate);
-    return this.productsRepository.save(product);
+    const saved = await this.productsRepository.save(product);
+
+    const hasDiscount = saved.listPrice > 0 && saved.discountRate > 0;
+    const pricingChanged =
+      saved.discountRate !== previousDiscountRate || saved.price !== previousPrice;
+
+    if (hasDiscount && pricingChanged) {
+      await this.notifyWishlistUsers([saved], saved.discountRate);
+    }
+
+    return saved;
   }
 
   async applyDiscount(dto: ApplyDiscountDto): Promise<Product[]> {

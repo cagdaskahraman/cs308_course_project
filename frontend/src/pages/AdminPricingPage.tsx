@@ -23,6 +23,7 @@ import {
 } from '../services/pricingService';
 import { downloadInvoicePdf } from '../services/orderService';
 import { formatPrice } from '../utils/formatPrice';
+import { computeSalePrice } from '../utils/productPricing';
 
 export const AdminPricingPage = (): JSX.Element => {
   const navigate = useNavigate();
@@ -43,6 +44,21 @@ export const AdminPricingPage = (): JSX.Element => {
   const [invoices, setInvoices] = useState<InvoiceSummary[]>([]);
   const [downloadingOrderId, setDownloadingOrderId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, { listPrice: string; discountRate: string }>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const syncDraftsFromProducts = useCallback((items: PricingProduct[]) => {
+    setDrafts(
+      Object.fromEntries(
+        items.map((p) => [
+          p.id,
+          {
+            listPrice: String(p.listPrice ?? p.price ?? 0),
+            discountRate: String(p.discountRate ?? 0),
+          },
+        ]),
+      ),
+    );
+  }, []);
 
   const load = useCallback(async () => {
     if (!canManageSales) return;
@@ -50,17 +66,7 @@ export const AdminPricingPage = (): JSX.Element => {
     try {
       const nextProducts = await listPricingProducts();
       setProducts(nextProducts);
-      setDrafts(
-        Object.fromEntries(
-          nextProducts.map((p) => [
-            p.id,
-            {
-              listPrice: String(p.listPrice ?? p.price ?? 0),
-              discountRate: String(p.discountRate ?? 0),
-            },
-          ]),
-        ),
-      );
+      syncDraftsFromProducts(nextProducts);
     } catch (e) {
       if (isAuthFailure(e)) {
         signOut();
@@ -69,7 +75,7 @@ export const AdminPricingPage = (): JSX.Element => {
       }
       setError(e instanceof Error ? e.message : 'Failed to load pricing data');
     }
-  }, [canManageSales, navigate, signOut]);
+  }, [canManageSales, navigate, signOut, syncDraftsFromProducts]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -111,6 +117,13 @@ export const AdminPricingPage = (): JSX.Element => {
         discountRate: rate,
       });
       setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setDrafts((prev) => ({
+        ...prev,
+        [updated.id]: {
+          listPrice: String(updated.listPrice ?? updated.price ?? 0),
+          discountRate: String(updated.discountRate ?? 0),
+        },
+      }));
       showToast('Pricing updated.', 'success');
     } catch (e) {
       if (isAuthFailure(e)) {
@@ -139,6 +152,16 @@ export const AdminPricingPage = (): JSX.Element => {
       setProducts((prev) =>
         prev.map((p) => updated.find((item) => item.id === p.id) ?? p),
       );
+      setDrafts((prev) => {
+        const next = { ...prev };
+        for (const item of updated) {
+          next[item.id] = {
+            listPrice: String(item.listPrice ?? item.price ?? 0),
+            discountRate: String(item.discountRate ?? 0),
+          };
+        }
+        return next;
+      });
       showToast(`Discount applied to ${updated.length} product(s).`, 'success');
     } catch (e) {
       if (isAuthFailure(e)) {
@@ -193,6 +216,21 @@ export const AdminPricingPage = (): JSX.Element => {
     [products],
   );
 
+  const filteredProducts = useMemo(() => {
+    const term = searchQuery.trim().toLowerCase();
+    if (!term) return products;
+    return products.filter((p) => p.name.toLowerCase().includes(term));
+  }, [products, searchQuery]);
+
+  const previewSalePrice = (productId: string): string => {
+    const draft = drafts[productId];
+    const listPrice = Number(draft?.listPrice);
+    const rate = Number(draft?.discountRate);
+    if (!Number.isFinite(listPrice) || listPrice <= 0) return '—';
+    if (!Number.isFinite(rate) || rate < 0 || rate > 100) return '—';
+    return formatPrice(computeSalePrice(listPrice, rate));
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="text-center py-5">
@@ -220,10 +258,22 @@ export const AdminPricingPage = (): JSX.Element => {
         icon="bi-currency-exchange"
         title="Sales management"
         subtitle="Set list prices, apply discounts, and review revenue for the selected period."
-        badge={`${products.length} products`}
+        badge={`${filteredProducts.length} products`}
       />
 
       {error ? <div className="alert alert-danger">{error}</div> : null}
+
+      <div className="content-card mb-4">
+        <label className="form-label" htmlFor="pricingSearch">Search by product name</label>
+        <input
+          id="pricingSearch"
+          type="search"
+          className="form-control"
+          placeholder="Type a product name…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
 
       <div className="row g-4 mb-4">
         <div className="col-md-4">
@@ -274,7 +324,14 @@ export const AdminPricingPage = (): JSX.Element => {
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
+            {filteredProducts.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-secondary text-center py-4">
+                  No products match your search.
+                </td>
+              </tr>
+            ) : null}
+            {filteredProducts.map((product) => (
               <tr key={product.id}>
                 <td>
                   <input
@@ -322,7 +379,7 @@ export const AdminPricingPage = (): JSX.Element => {
                     }
                   />
                 </td>
-                <td>{formatPrice(product.price)}</td>
+                <td className="fw-medium">{previewSalePrice(product.id)}</td>
                 <td>
                   <button
                     type="button"
