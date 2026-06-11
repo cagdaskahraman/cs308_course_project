@@ -8,6 +8,7 @@ import { OrderItem } from '../orders/entities/order-item.entity';
 import { Order } from '../orders/entities/order.entity';
 import { ProductCategory } from '../products/entities/product-category.entity';
 import { Product } from '../products/entities/product.entity';
+import { ReturnRequest } from '../returns/entities/return-request.entity';
 import { Review } from '../reviews/entities/review.entity';
 import { User } from '../users/entities/user.entity';
 import { WishlistItem } from '../wishlist/entities/wishlist-item.entity';
@@ -44,6 +45,7 @@ export function getTypeOrmModuleOptions(): TypeOrmModuleOptions {
       Review,
       Invoice,
       WishlistItem,
+      ReturnRequest,
     ],
     synchronize: false,
     logging: process.env.TYPEORM_LOGGING === 'true',
