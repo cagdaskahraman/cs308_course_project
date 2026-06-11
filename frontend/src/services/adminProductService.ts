@@ -114,3 +114,22 @@ export async function deleteAdminCategory(name: string): Promise<void> {
     'Failed to delete category',
   );
 }
+
+export async function uploadProductImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${apiBaseUrl}/admin/products/upload-image`, {
+    method: 'POST',
+    headers: { ...authHeader() },
+    body: formData,
+  });
+  if (!res.ok) {
+    throw new Error(await getErrorMessage(res, 'Failed to upload image'));
+  }
+  const data = (await res.json()) as { imageUrl: string };
+  const path = data.imageUrl;
+  if (path.startsWith('/')) {
+    return `${apiBaseUrl}${path}`;
+  }
+  return path;
+}
