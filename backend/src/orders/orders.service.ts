@@ -291,19 +291,25 @@ export class OrdersService {
 
     if (next === OrderStatus.Cancelled) {
       return this.dataSource.transaction(async (manager) => {
-        const order = await manager.findOne(Order, {
+        // Lock the order row alone — LEFT JOINed relations are
+        // incompatible with FOR UPDATE in PostgreSQL.
+        const locked = await manager.findOne(Order, {
           where: { id },
-          relations: { items: { product: true } },
           lock: { mode: 'pessimistic_write' },
         });
-        if (!order) {
+        if (!locked) {
           throw new NotFoundException(`Order not found: ${id}`);
         }
-        if (!OrdersService.isValidStatusTransition(order.status, next)) {
+        if (!OrdersService.isValidStatusTransition(locked.status, next)) {
           throw new BadRequestException(
-            `Invalid status transition from '${order.status}' to '${next}'`,
+            `Invalid status transition from '${locked.status}' to '${next}'`,
           );
         }
+
+        const order = await manager.findOneOrFail(Order, {
+          where: { id },
+          relations: { items: { product: true } },
+        });
 
         for (const item of order.items) {
           const product = await manager.findOne(Product, {
