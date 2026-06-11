@@ -9,7 +9,7 @@ import {
 import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 import { SalesManagerRoleGuard } from '../common/auth/sales-manager-role.guard';
 import { InvoiceDto } from '../invoices/dto/invoice.dto';
-import { RevenueSummaryDto } from '../pricing/dto/pricing.dto';
+import { RevenueChartPointDto, RevenueSummaryDto } from '../pricing/dto/pricing.dto';
 import { SalesReportsService } from './sales-reports.service';
 
 @ApiTags('admin sales')
@@ -37,5 +37,15 @@ export class AdminSalesController {
     @Query('to') to: string,
   ): Promise<RevenueSummaryDto> {
     return this.salesReportsService.getRevenueSummary(from, to);
+  }
+
+  @Get('revenue/chart')
+  @ApiOperation({ summary: 'Daily revenue chart data for a date range' })
+  @ApiOkResponse({ type: [RevenueChartPointDto] })
+  getRevenueChart(
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ): Promise<RevenueChartPointDto[]> {
+    return this.salesReportsService.getRevenueChart(from, to);
   }
 }

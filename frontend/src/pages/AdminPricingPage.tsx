@@ -6,15 +6,22 @@ import { AdminModerationNav } from '../components/AdminModerationNav';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { isAuthFailure } from '../services/authService';
+import { LoadingState } from '../components/LoadingState';
+import { PageHeader } from '../components/PageHeader';
+import { RevenueChart } from '../components/RevenueChart';
 import {
   applyProductDiscount,
+  getRevenueChart,
   getRevenueSummary,
   listPricingProducts,
   listSalesInvoices,
   updateProductPricing,
+  type InvoiceSummary,
   type PricingProduct,
+  type RevenueChartPoint,
   type RevenueSummary,
 } from '../services/pricingService';
+import { downloadInvoicePdf } from '../services/orderService';
 import { formatPrice } from '../utils/formatPrice';
 
 export const AdminPricingPage = (): JSX.Element => {
@@ -22,7 +29,7 @@ export const AdminPricingPage = (): JSX.Element => {
   const { user, isAuthenticated, signOut } = useAuth();
   const { showToast } = useToast();
 
-  const canManageSales = user?.role === 'sales_manager' || user?.role === 'admin';
+  const canManageSales = user?.role === 'sales_manager';
   const [products, setProducts] = useState<PricingProduct[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [discountRate, setDiscountRate] = useState(10);
@@ -32,7 +39,9 @@ export const AdminPricingPage = (): JSX.Element => {
   const [fromDate, setFromDate] = useState('2026-01-01');
   const [toDate, setToDate] = useState('2026-12-31');
   const [revenue, setRevenue] = useState<RevenueSummary | null>(null);
-  const [invoiceCount, setInvoiceCount] = useState(0);
+  const [chartPoints, setChartPoints] = useState<RevenueChartPoint[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceSummary[]>([]);
+  const [downloadingOrderId, setDownloadingOrderId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, { listPrice: string; discountRate: string }>>({});
 
   const load = useCallback(async () => {
@@ -144,12 +153,14 @@ export const AdminPricingPage = (): JSX.Element => {
   const loadReports = async () => {
     setError('');
     try {
-      const [summary, invoices] = await Promise.all([
+      const [summary, invoices, chart] = await Promise.all([
         getRevenueSummary(fromDate, toDate),
         listSalesInvoices(fromDate, toDate),
+        getRevenueChart(fromDate, toDate),
       ]);
       setRevenue(summary);
-      setInvoiceCount(invoices.length);
+      setChartPoints(chart);
+      setInvoices(invoices);
     } catch (e) {
       if (isAuthFailure(e)) {
         signOut();
@@ -157,6 +168,23 @@ export const AdminPricingPage = (): JSX.Element => {
         return;
       }
       setError(e instanceof Error ? e.message : 'Could not load sales reports');
+    }
+  };
+
+  const handleInvoiceDownload = async (orderId: string, invoiceNumber: string) => {
+    setDownloadingOrderId(orderId);
+    try {
+      const blob = await downloadInvoicePdf(orderId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${invoiceNumber}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Could not download invoice');
+    } finally {
+      setDownloadingOrderId(null);
     }
   };
 
@@ -178,40 +206,38 @@ export const AdminPricingPage = (): JSX.Element => {
   if (!canManageSales) {
     return (
       <div className="alert alert-warning mt-5">
-        Only sales managers and administrators can manage pricing and sales reports.
+        Only sales managers can manage pricing and sales reports.
       </div>
     );
   }
 
-  if (loading) {
-    return <div className="text-center py-5">Loading sales management…</div>;
-  }
+  if (loading) return <LoadingState label="Loading sales management…" />;
 
   return (
     <>
       <AdminModerationNav active="pricing" />
-      <div className="mb-4">
-        <h2 className="fw-bold mb-1">Sales management</h2>
-        <p className="text-secondary mb-0">
-          Set list prices, apply discounts, and review revenue for the selected period.
-        </p>
-      </div>
+      <PageHeader
+        icon="bi-currency-exchange"
+        title="Sales management"
+        subtitle="Set list prices, apply discounts, and review revenue for the selected period."
+        badge={`${products.length} products`}
+      />
 
       {error ? <div className="alert alert-danger">{error}</div> : null}
 
       <div className="row g-4 mb-4">
         <div className="col-md-4">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-body">
-              <div className="text-secondary small">Priced products</div>
-              <div className="fs-3 fw-bold">{pricedCount}</div>
-            </div>
+          <div className="stat-card h-100">
+              <div className="stat-card__label">Priced products</div>
+              <div className="stat-card__value">{pricedCount}</div>
           </div>
         </div>
         <div className="col-md-8">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-body">
-              <h5 className="card-title">Bulk discount</h5>
+          <div className="content-card h-100 mb-0">
+              <h2 className="content-card__title">
+                <i className="bi bi-percent" aria-hidden />
+                Bulk discount
+              </h2>
               <form className="row g-2 align-items-end" onSubmit={(e) => void applyDiscount(e)}>
                 <div className="col-md-4">
                   <label className="form-label" htmlFor="discountRate">Discount %</label>
@@ -231,14 +257,13 @@ export const AdminPricingPage = (): JSX.Element => {
                   </button>
                 </div>
               </form>
-            </div>
           </div>
         </div>
       </div>
 
-      <div className="table-responsive shadow-sm rounded border bg-white mb-4">
+      <div className="table-responsive data-card mb-4">
         <table className="table table-hover align-middle mb-0">
-          <thead className="table-light">
+          <thead>
             <tr>
               <th />
               <th>Product</th>
@@ -314,9 +339,11 @@ export const AdminPricingPage = (): JSX.Element => {
         </table>
       </div>
 
-      <div className="card border-0 shadow-sm">
-        <div className="card-body">
-          <h5 className="card-title">Revenue report</h5>
+      <div className="content-card mb-0">
+          <h2 className="content-card__title">
+            <i className="bi bi-graph-up-arrow" aria-hidden />
+            Revenue report
+          </h2>
           <div className="row g-2 align-items-end mb-3">
             <div className="col-md-3">
               <label className="form-label" htmlFor="fromDate">From</label>
@@ -334,27 +361,86 @@ export const AdminPricingPage = (): JSX.Element => {
           </div>
           {revenue ? (
             <div className="row g-3">
-              <div className="col-md-4">
-                <div className="border rounded p-3">
-                  <div className="text-secondary small">Invoices</div>
-                  <div className="fs-4 fw-semibold">{invoiceCount}</div>
+              <div className="col-md-3">
+                <div className="stat-card">
+                  <div className="stat-card__label">Invoices</div>
+                  <div className="stat-card__value">{revenue.invoiceCount}</div>
                 </div>
               </div>
-              <div className="col-md-4">
-                <div className="border rounded p-3">
-                  <div className="text-secondary small">Total revenue</div>
-                  <div className="fs-4 fw-semibold">{formatPrice(revenue.totalRevenue)}</div>
+              <div className="col-md-3">
+                <div className="stat-card">
+                  <div className="stat-card__label">Total revenue</div>
+                  <div className="stat-card__value">{formatPrice(revenue.totalRevenue)}</div>
                 </div>
               </div>
-              <div className="col-md-4">
-                <div className="border rounded p-3">
-                  <div className="text-secondary small">Average order value</div>
-                  <div className="fs-4 fw-semibold">{formatPrice(revenue.averageOrderValue)}</div>
+              <div className="col-md-3">
+                <div className="stat-card">
+                  <div className="stat-card__label">Estimated cost</div>
+                  <div className="stat-card__value">{formatPrice(revenue.totalCost)}</div>
                 </div>
+              </div>
+              <div className="col-md-3">
+                <div className="stat-card">
+                  <div className="stat-card__label">Profit / loss</div>
+                  <div className="stat-card__value">
+                    {formatPrice(revenue.totalProfit)}
+                    {revenue.totalLoss > 0 ? (
+                      <span className="text-danger small ms-1">(-{formatPrice(revenue.totalLoss)})</span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              <div className="col-12">
+                <div className="revenue-chart-panel">
+                  <div className="text-secondary small mb-3 fw-bold text-uppercase">Revenue, cost & profit chart</div>
+                  <RevenueChart points={chartPoints} />
+                </div>
+              </div>
+              <div className="col-12">
+                <h3 className="h6 fw-bold mb-3">Invoices in selected period</h3>
+                {invoices.length === 0 ? (
+                  <p className="text-secondary mb-0">No invoices found for this date range.</p>
+                ) : (
+                  <div className="table-responsive data-card">
+                    <table className="table table-hover align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th>Invoice</th>
+                          <th>Customer</th>
+                          <th>Issued</th>
+                          <th>Total</th>
+                          <th className="text-end">Invoice</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invoices.map((invoice) => (
+                          <tr key={invoice.id}>
+                            <td className="fw-semibold">{invoice.invoiceNumber}</td>
+                            <td>
+                              <div>{invoice.billingName}</div>
+                              <div className="small text-secondary">{invoice.billingEmail}</div>
+                            </td>
+                            <td>{new Date(invoice.issuedAt).toLocaleString()}</td>
+                            <td>{formatPrice(invoice.total)}</td>
+                            <td className="text-end">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary"
+                                disabled={downloadingOrderId === invoice.orderId}
+                                onClick={() => void handleInvoiceDownload(invoice.orderId, invoice.invoiceNumber)}
+                              >
+                                {downloadingOrderId === invoice.orderId ? 'Preparing…' : 'Download'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           ) : null}
-        </div>
       </div>
     </>
   );

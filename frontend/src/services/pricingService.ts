@@ -14,7 +14,17 @@ export type RevenueSummary = {
   to: string;
   invoiceCount: number;
   totalRevenue: number;
+  totalCost: number;
+  totalProfit: number;
+  totalLoss: number;
   averageOrderValue: number;
+};
+
+export type RevenueChartPoint = {
+  date: string;
+  revenue: number;
+  cost: number;
+  profit: number;
 };
 
 export type InvoiceSummary = {
@@ -84,4 +94,9 @@ export async function listSalesInvoices(from: string, to: string): Promise<Invoi
 export async function getRevenueSummary(from: string, to: string): Promise<RevenueSummary> {
   const params = new URLSearchParams({ from, to });
   return request<RevenueSummary>(`/admin/sales/revenue?${params.toString()}`, undefined, 'Failed to load revenue summary');
+}
+
+export async function getRevenueChart(from: string, to: string): Promise<RevenueChartPoint[]> {
+  const params = new URLSearchParams({ from, to });
+  return request<RevenueChartPoint[]>(`/admin/sales/revenue/chart?${params.toString()}`, undefined, 'Failed to load revenue chart');
 }
