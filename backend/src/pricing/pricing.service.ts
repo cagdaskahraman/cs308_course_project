@@ -95,15 +95,9 @@ export class PricingService {
       relations: { user: true, product: true },
     });
 
-    const notified = new Set<string>();
     for (const row of wishlistRows) {
-      const email = row.user.email;
-      if (notified.has(email)) {
-        continue;
-      }
-      notified.add(email);
       await this.mailer.sendDiscountAlert({
-        to: email,
+        to: row.user.email,
         productName: row.product.name,
         discountRate,
         newPrice: priceByProductId.get(row.product.id) ?? row.product.price,
