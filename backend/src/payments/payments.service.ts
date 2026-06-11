@@ -45,6 +45,24 @@ export class PaymentsService {
     };
   }
 
+  refund(amount: number, originalAuthorizationReference: string): PaymentResultDto {
+    if (amount <= 0) {
+      throw new BadRequestException('Refund amount must be greater than zero');
+    }
+    const reference = `REFUND-${randomUUID().split('-')[0]}`;
+    this.logger.log(
+      `[Payments] Refunded ${reference} amount=${amount} original=${originalAuthorizationReference}`,
+    );
+    return {
+      status: PaymentStatus.REFUNDED,
+      authorizationReference: reference,
+      cardLast4: '0000',
+      cardHolder: 'Refund',
+      amount,
+      authorizedAt: new Date().toISOString(),
+    };
+  }
+
   private static isLuhnValid(pan: string): boolean {
     let sum = 0;
     let shouldDouble = false;
