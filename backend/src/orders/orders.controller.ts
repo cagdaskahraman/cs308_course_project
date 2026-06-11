@@ -27,6 +27,7 @@ import {
 import { CurrentUser } from '../common/auth/current-user.decorator';
 import { AuthUserPayload, JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 import { StaffRoleGuard } from '../common/auth/staff-role.guard';
+import { DeliveryListItemDto } from './dto/delivery-list-item.dto';
 import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateOrderItemStatusDto } from './dto/update-order-item-status.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -104,6 +105,19 @@ export class OrdersController {
   })
   listAllForStaff(): Promise<Order[]> {
     return this.ordersService.findAllForStaff();
+  }
+
+  @Get('deliveries/list')
+  @UseGuards(JwtAuthGuard, StaffRoleGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List delivery lines (staff)',
+    description:
+      'Returns one row per order item with delivery id, customer id, product id, quantity, total, address, and completion flag.',
+  })
+  @ApiOkResponse({ type: [DeliveryListItemDto] })
+  listDeliveries(): Promise<DeliveryListItemDto[]> {
+    return this.ordersService.listDeliveries();
   }
 
   @Get(':id')
