@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
+import { Invoice } from '../invoices/entities/invoice.entity';
+import { OrderItem } from '../orders/entities/order-item.entity';
+import { Order } from '../orders/entities/order.entity';
+import { Product } from '../products/entities/product.entity';
 import { User, UserRole } from './entities/user.entity';
 import { UsersDevSeedService } from './users-dev-seed.service';
 
@@ -24,6 +28,7 @@ describe('UsersDevSeedService', () => {
       DEMO_PRODUCT_MANAGER_PASSWORD: 'Manager123!',
       DEMO_SALES_MANAGER_EMAIL: 'sm@test.local',
       DEMO_SALES_MANAGER_PASSWORD: 'Sales123!',
+      AUTO_SEED_DEMO_SCENARIO: 'false',
     };
 
     usersRepository = {
@@ -39,6 +44,22 @@ describe('UsersDevSeedService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: usersRepository,
+        },
+        {
+          provide: getRepositoryToken(Product),
+          useValue: {},
+        },
+        {
+          provide: getRepositoryToken(Order),
+          useValue: {},
+        },
+        {
+          provide: getRepositoryToken(OrderItem),
+          useValue: {},
+        },
+        {
+          provide: getRepositoryToken(Invoice),
+          useValue: {},
         },
       ],
     }).compile();
