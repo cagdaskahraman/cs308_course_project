@@ -284,11 +284,6 @@ export const OrderTrackingPage = (): JSX.Element => {
                 <span>
                   Email sent to <strong>{invoiceDispatch.to}</strong> with attachment{' '}
                   <strong>{invoiceDispatch.attachmentName}</strong>.
-                  {invoiceDispatch.messageId ? (
-                    <>
-                      {' '}SMTP Message-ID: <strong>{invoiceDispatch.messageId}</strong>.
-                    </>
-                  ) : null}
                 </span>
               </div>
             ) : null}
