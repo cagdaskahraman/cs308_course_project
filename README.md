@@ -1,6 +1,13 @@
 # CS308 Course Project — ElectroStore
 
-Online electronics store for CS308. Customers browse a 40-item catalog, manage cart/wishlist, checkout, track orders, request returns, and leave reviews. Staff roles cover catalog management (product manager), pricing/sales/invoices/returns (sales manager).
+Online electronics store for CS308. Customers browse the catalog, manage cart/wishlist, checkout, track orders, request returns, and leave reviews. Staff roles cover catalog management (product manager), pricing/sales/invoices/returns (sales manager).
+
+## Key Features
+- **Customer:** catalog search/sort, product detail, cart (guest + logged-in), checkout, order tracking, wishlist, returns within 30 days, reviews
+- **Product manager:** product CRUD, stock, categories, image upload
+- **Sales manager:** pricing/discounts, invoice PDF + email, revenue reports, delivery status, return approve/reject (refund email on approval)
+- **Security:** JWT auth, role-based guards, AES-256 encryption for sensitive profile/invoice fields
+- **Data:** PostgreSQL + TypeORM migrations
 
 ## Team Members
 - Çağdaş Kahraman
@@ -55,7 +62,16 @@ cd frontend && npm install && npm run dev
 - Backend: `http://localhost:3000`
 - API docs: `http://localhost:3000/api`
 
-On first start the backend seeds a 40-product catalog and a demo scenario (Products A–C in catalog; D added by PM; E–H tied to sample customer orders).
+## Unit Tests
+
+Backend unit tests use **Jest**. Spec files live next to their services under `backend/src/**/*.spec.ts` (e.g. `auth/`, `cart/`, `orders/`, `returns/`, `invoices/`).
+
+**Total:** 95 tests across 16 suites (run from `backend/`):
+
+```bash
+cd backend
+npm test
+```
 
 ## Scrum
 Meeting notes and backlog: `docs/`.
