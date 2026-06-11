@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 
 import { Cart } from '../cart/entities/cart.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
@@ -16,6 +16,7 @@ import { PaymentResultDto } from '../payments/dto/payment-result.dto';
 import { PaymentsService } from '../payments/payments.service';
 import { Product } from '../products/entities/product.entity';
 import { User } from '../users/entities/user.entity';
+import { DeliveryListItemDto } from './dto/delivery-list-item.dto';
 import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateOrderItemStatusDto } from './dto/update-order-item-status.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -171,10 +172,90 @@ export class OrdersService {
     });
   }
 
-  async findAllForStaff(): Promise<Order[]> {
-    return this.orderRepository.find({
+  async findAllForStaff(): Promise<
+    Array<
+      Order & {
+        customer: { id: string; email: string; fullName: string | null } | null;
+      }
+    >
+  > {
+    const orders = await this.orderRepository.find({
       relations: { items: { product: true } },
       order: { orderDate: 'DESC' },
+    });
+    const userIds = [
+      ...new Set(
+        orders
+          .map((order) => order.userId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const users =
+      userIds.length > 0
+        ? await this.usersRepository.find({
+            where: { id: In(userIds) },
+            select: ['id', 'email', 'fullName'],
+          })
+        : [];
+    const userMap = new Map(users.map((user) => [user.id, user]));
+
+    return orders.map((order) => ({
+      ...order,
+      customer: order.userId
+        ? (userMap.get(order.userId) ?? {
+            id: order.userId,
+            email: 'Unknown customer',
+            fullName: null,
+          })
+        : null,
+    }));
+  }
+
+  async listDeliveries(): Promise<DeliveryListItemDto[]> {
+    const orders = await this.orderRepository.find({
+      where: [
+        { status: OrderStatus.Processing },
+        { status: OrderStatus.InTransit },
+        { status: OrderStatus.Delivered },
+      ],
+      relations: { items: { product: true } },
+      order: { orderDate: 'DESC' },
+    });
+    const userIds = [
+      ...new Set(
+        orders
+          .map((order) => order.userId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const users =
+      userIds.length > 0
+        ? await this.usersRepository.find({
+            where: { id: In(userIds) },
+            select: ['id', 'email', 'fullName'],
+          })
+        : [];
+    const userMap = new Map(users.map((user) => [user.id, user]));
+
+    return orders.flatMap((order) => {
+      const customer = order.userId ? userMap.get(order.userId) : null;
+      return order.items.map((item) => ({
+        deliveryId: item.id,
+        customerId: order.userId ?? 'unknown',
+        customerName: customer?.fullName?.trim() || customer?.email || 'Guest',
+        customerEmail: customer?.email ?? '—',
+        productId: item.product.id,
+        productName: item.product.name,
+        quantity: item.quantity,
+        totalPrice:
+          Math.round(item.quantity * Number(item.priceAtPurchase) * 100) /
+          100,
+        deliveryAddress: order.deliveryAddress ?? '—',
+        itemStatus: item.status,
+        orderDate: order.orderDate,
+        completed: item.status === OrderItemStatus.Delivered,
+        orderId: order.id,
+      }));
     });
   }
 
