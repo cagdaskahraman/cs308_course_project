@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -10,11 +11,16 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiConflictResponse,
+  ApiConsumes,
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
@@ -24,6 +30,9 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { randomUUID } from 'crypto';
 
 import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 import { ProductManagerRoleGuard } from '../common/auth/product-manager-role.guard';
@@ -96,6 +105,48 @@ export class AdminProductsController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): Promise<void> {
     await this.productsService.deleteProduct(id);
+  }
+
+  @Post('products/upload-image')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Upload a product image file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiCreatedResponse({
+    schema: {
+      type: 'object',
+      properties: { imageUrl: { type: 'string', example: '/uploads/products/abc123.jpg' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: 'uploads/products',
+        filename: (_req, file, cb) => {
+          const ext = extname(file.originalname).toLowerCase() || '.jpg';
+          cb(null, `${randomUUID()}${ext}`);
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (/^image\/(jpeg|png|gif|webp)$/.test(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Only JPEG, PNG, GIF, and WebP images are allowed'), false);
+        }
+      },
+    }),
+  )
+  uploadImage(@UploadedFile() file: Express.Multer.File): { imageUrl: string } {
+    if (!file) {
+      throw new BadRequestException('No image file provided');
+    }
+    return { imageUrl: `/uploads/products/${file.filename}` };
   }
 
   @Get('categories')

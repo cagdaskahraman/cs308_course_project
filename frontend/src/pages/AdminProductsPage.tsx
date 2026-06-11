@@ -16,6 +16,7 @@ import {
   listAdminProducts,
   updateAdminProduct,
   updateAdminProductStock,
+  uploadProductImage,
   type AdminProductPayload,
 } from '../services/adminProductService';
 import { isAuthFailure } from '../services/authService';
@@ -66,6 +67,9 @@ export const AdminProductsPage = (): JSX.Element => {
   const [newCategory, setNewCategory] = useState('');
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [imageMode, setImageMode] = useState<'upload' | 'url'>('upload');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const canManageCatalog =
     user?.role === 'product_manager';
@@ -120,11 +124,15 @@ export const AdminProductsPage = (): JSX.Element => {
   const resetForm = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setImagePreview(null);
+    setImageMode('upload');
   };
 
   const editProduct = (product: Product) => {
     setEditingId(product.id);
     setForm(toForm(product));
+    setImagePreview(product.imageUrl || null);
+    setImageMode(product.imageUrl ? 'url' : 'upload');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -133,6 +141,26 @@ export const AdminProductsPage = (): JSX.Element => {
     value: AdminProductPayload[K],
   ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setUploadingImage(true);
+    setError('');
+    try {
+      const imageUrl = await uploadProductImage(file);
+      updateFormField('imageUrl', imageUrl);
+      setImagePreview(URL.createObjectURL(file));
+      showToast('Image uploaded.', 'success');
+    } catch (e) {
+      if (isAuthFailure(e)) {
+        signOut();
+        navigate('/login?next=/admin/products', { replace: true });
+        return;
+      }
+      setError(e instanceof Error ? e.message : 'Image upload failed');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -338,8 +366,63 @@ export const AdminProductsPage = (): JSX.Element => {
                     <input id="productWarranty" className="form-control" value={form.warrantyStatus} onChange={(e) => updateFormField('warrantyStatus', e.target.value)} required />
                   </div>
                   <div className="col-12">
-                    <label className="form-label" htmlFor="productImage">Image URL</label>
-                    <input id="productImage" className="form-control" value={form.imageUrl} onChange={(e) => updateFormField('imageUrl', e.target.value)} required />
+                    <label className="form-label">Product image</label>
+                    <div className="btn-group btn-group-sm mb-2 w-100" role="group">
+                      <button
+                        type="button"
+                        className={`btn ${imageMode === 'upload' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => setImageMode('upload')}
+                      >
+                        <i className="bi bi-upload me-1" aria-hidden /> Upload file
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn ${imageMode === 'url' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => setImageMode('url')}
+                      >
+                        <i className="bi bi-link-45deg me-1" aria-hidden /> Paste URL
+                      </button>
+                    </div>
+                    {imageMode === 'upload' ? (
+                      <div>
+                        <input
+                          id="productImageFile"
+                          type="file"
+                          className="form-control"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          disabled={uploadingImage}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) void handleImageUpload(file);
+                          }}
+                        />
+                        <div className="form-text">
+                          {uploadingImage ? 'Uploading…' : 'JPEG, PNG, GIF, or WebP — max 5 MB'}
+                        </div>
+                      </div>
+                    ) : (
+                      <input
+                        id="productImageUrl"
+                        className="form-control"
+                        placeholder="https://example.com/image.jpg"
+                        value={form.imageUrl}
+                        onChange={(e) => {
+                          updateFormField('imageUrl', e.target.value);
+                          setImagePreview(e.target.value || null);
+                        }}
+                      />
+                    )}
+                    {(imagePreview || form.imageUrl) ? (
+                      <div className="mt-2">
+                        <img
+                          src={imagePreview || form.imageUrl}
+                          alt="Preview"
+                          style={{ maxHeight: 120, maxWidth: '100%', objectFit: 'contain', borderRadius: 6, border: '1px solid #dee2e6' }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          onLoad={(e) => { (e.target as HTMLImageElement).style.display = ''; }}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                   <div className="col-12">
                     <label className="form-label" htmlFor="productDistributor">Distributor info</label>
