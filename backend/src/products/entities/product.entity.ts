@@ -16,6 +16,21 @@ export class Product {
   @Column({ type: 'decimal', transformer: decimalNumberTransformer })
   price!: number;
 
+  @Column({
+    name: 'list_price',
+    type: 'decimal',
+    transformer: decimalNumberTransformer,
+  })
+  listPrice!: number;
+
+  @Column({
+    name: 'discount_rate',
+    type: 'decimal',
+    default: 0,
+    transformer: decimalNumberTransformer,
+  })
+  discountRate!: number;
+
   @Column({ name: 'stock_quantity', type: 'int' })
   stockQuantity!: number;
 
@@ -24,5 +39,20 @@ export class Product {
 
   @Column({ name: 'image_url', type: 'varchar' })
   imageUrl!: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  model?: string | null;
+
+  @Column({ name: 'serial_number', type: 'varchar', unique: true, nullable: true })
+  serialNumber?: string | null;
+
+  @Column({ name: 'warranty_status', type: 'varchar', nullable: true })
+  warrantyStatus?: string | null;
+
+  @Column({ name: 'distributor_info', type: 'text', nullable: true })
+  distributorInfo?: string | null;
+
+  @Column({ type: 'int', default: 0 })
+  popularity!: number;
 }
 

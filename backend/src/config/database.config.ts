@@ -3,10 +3,15 @@ import { DataSourceOptions } from 'typeorm';
 
 import { CartItem } from '../cart/entities/cart-item.entity';
 import { Cart } from '../cart/entities/cart.entity';
+import { Invoice } from '../invoices/entities/invoice.entity';
 import { OrderItem } from '../orders/entities/order-item.entity';
 import { Order } from '../orders/entities/order.entity';
+import { ProductCategory } from '../products/entities/product-category.entity';
 import { Product } from '../products/entities/product.entity';
+import { ReturnRequest } from '../returns/entities/return-request.entity';
+import { Review } from '../reviews/entities/review.entity';
 import { User } from '../users/entities/user.entity';
+import { WishlistItem } from '../wishlist/entities/wishlist-item.entity';
 
 export function getDatabaseEnv(): {
   host: string;
@@ -29,7 +34,19 @@ export function getTypeOrmModuleOptions(): TypeOrmModuleOptions {
   return {
     type: 'postgres',
     ...getDatabaseEnv(),
-    entities: [Product, Order, OrderItem, Cart, CartItem, User],
+    entities: [
+      Product,
+      ProductCategory,
+      Order,
+      OrderItem,
+      Cart,
+      CartItem,
+      User,
+      Review,
+      Invoice,
+      WishlistItem,
+      ReturnRequest,
+    ],
     synchronize: false,
     logging: process.env.TYPEORM_LOGGING === 'true',
   };

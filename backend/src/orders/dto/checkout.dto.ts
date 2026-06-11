@@ -3,11 +3,16 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsEmail,
   IsOptional,
+  IsString,
   IsUUID,
+  MaxLength,
+  MinLength,
   ValidateNested,
 } from 'class-validator';
 
+import { PaymentDetailsDto } from '../../payments/dto/payment-details.dto';
 import { CheckoutItemDto } from './checkout-item.dto';
 
 export class CheckoutDto {
@@ -47,5 +52,34 @@ export class CheckoutDto {
   @ValidateNested({ each: true })
   @Type(() => CheckoutItemDto)
   items!: CheckoutItemDto[];
+
+  @ApiProperty({
+    type: () => PaymentDetailsDto,
+    description:
+      'Mock card details authorized against a fake gateway before the order is persisted.',
+  })
+  @ValidateNested()
+  @Type(() => PaymentDetailsDto)
+  payment!: PaymentDetailsDto;
+
+  @ApiPropertyOptional({
+    description:
+      'Overrides the authenticated user email for the invoice. Defaults to the caller email.',
+    example: 'buyer@example.com',
+  })
+  @IsOptional()
+  @IsEmail({}, { message: 'billingEmail must be a valid email' })
+  billingEmail?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Delivery address to print on invoice and forward to delivery department. Defaults to user home address when omitted.',
+    example: 'Istanbul, Besiktas, Nispetiye Cd. No:12 D:6',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(10)
+  @MaxLength(500)
+  deliveryAddress?: string;
 }
 

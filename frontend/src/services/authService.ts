@@ -1,11 +1,15 @@
-const apiBaseUrl =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
-  'http://localhost:3000';
+import { API_BASE_URL } from '../config/apiBase';
+
+const apiBaseUrl = API_BASE_URL;
+
+const TOKEN_KEY = 'token';
+const USER_KEY = 'authUser';
 
 export type AuthUser = {
   id: string;
   email: string;
-  role: 'customer' | 'product_manager';
+  fullName?: string;
+  role: 'customer' | 'product_manager' | 'sales_manager';
 };
 
 type LoginResponse = {
@@ -15,6 +19,7 @@ type LoginResponse = {
 
 type RegisterPayload = {
   email: string;
+  fullName: string;
   password: string;
   confirmPassword: string;
 };
@@ -31,23 +36,28 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
 
-  let errorMessage = `Request failed with status ${response.status}`;
+  let data: unknown;
   try {
-    const errorBody = (await response.json()) as { message?: string | string[] };
-    if (Array.isArray(errorBody.message)) {
-      errorMessage = errorBody.message.join(', ');
-    } else if (typeof errorBody.message === 'string') {
-      errorMessage = errorBody.message;
-    }
+    data = await response.json();
   } catch {
-    // Ignore body parse failure and keep fallback message.
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+    throw new Error('Invalid response from server');
   }
 
   if (!response.ok) {
+    const err = data as { message?: string | string[] };
+    let errorMessage = `Request failed with status ${response.status}`;
+    if (Array.isArray(err.message)) {
+      errorMessage = err.message.join(', ');
+    } else if (typeof err.message === 'string') {
+      errorMessage = err.message;
+    }
     throw new Error(errorMessage);
   }
 
-  return (await response.json()) as T;
+  return data as T;
 }
 
 export async function register(payload: RegisterPayload): Promise<void> {
@@ -56,4 +66,44 @@ export async function register(payload: RegisterPayload): Promise<void> {
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
   return postJson<LoginResponse>('/auth/login', payload);
+}
+
+export function saveAuth(token: string, user: AuthUser): void {
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getStoredUser(): AuthUser | null {
+  const raw = localStorage.getItem(USER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as AuthUser;
+  } catch {
+    return null;
+  }
+}
+
+export function clearAuth(): void {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+export function authHeader(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export function isAuthFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  return (
+    msg.includes('invalid or expired token') ||
+    msg.includes('missing authorization header') ||
+    msg.includes('request failed (401)') ||
+    msg.includes('not authenticated')
+  );
 }

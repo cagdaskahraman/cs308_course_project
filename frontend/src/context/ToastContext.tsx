@@ -35,13 +35,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ showToast }}>
       {children}
       <div
-        className="position-fixed bottom-0 end-0 p-3"
+        className="position-fixed bottom-0 end-0 p-3 toast-stack"
         style={{ zIndex: 1080, maxWidth: 380 }}
       >
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`alert alert-${t.type} alert-dismissible fade show shadow-sm mb-2`}
+            className={`alert alert-${t.type} alert-dismissible fade show shadow-sm mb-2 toast-pop`}
             role="alert"
           >
             {t.message}

@@ -1,6 +1,8 @@
 import type { Product } from '../types/product';
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3000';
+import { API_BASE_URL } from '../config/apiBase';
+
+const apiBaseUrl = API_BASE_URL;
 
 const CART_STORAGE_KEY = 'electrostore_cart_id';
 
@@ -35,7 +37,7 @@ export function getSavedCartId(): string | null {
   return localStorage.getItem(CART_STORAGE_KEY);
 }
 
-function saveCartId(id: string): void {
+export function saveCartId(id: string): void {
   localStorage.setItem(CART_STORAGE_KEY, id);
 }
 
@@ -76,4 +78,24 @@ export async function removeCartItem(cartId: string, itemId: string): Promise<Ca
   return request<CartResponse>(`${apiBaseUrl}/cart/${cartId}/items/${itemId}`, {
     method: 'DELETE',
   });
+}
+
+export async function mergeGuestCartWithUser(
+  token: string,
+  guestCartId?: string | null,
+): Promise<CartResponse> {
+  const response = await request<CartResponse>(`${apiBaseUrl}/cart/merge`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(guestCartId ? { guestCartId } : {}),
+  });
+  saveCartId(response.cart.id);
+  return response;
+}
+
+export function clearSavedCartId(): void {
+  localStorage.removeItem(CART_STORAGE_KEY);
 }

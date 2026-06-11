@@ -9,6 +9,9 @@ class LoginUserDto {
   @ApiProperty()
   email!: string;
 
+  @ApiProperty()
+  fullName!: string;
+
   @ApiProperty({ enum: UserRole })
   role!: UserRole;
 }

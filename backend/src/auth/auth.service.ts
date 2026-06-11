@@ -41,6 +41,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = this.usersRepository.create({
       email,
+      fullName: dto.fullName.trim(),
       passwordHash,
       role: UserRole.CUSTOMER,
     });
@@ -49,6 +50,7 @@ export class AuthService {
     return {
       id: savedUser.id,
       email: savedUser.email,
+      fullName: savedUser.fullName ?? '',
       role: savedUser.role,
       createdAt: savedUser.createdAt,
     };
@@ -58,7 +60,13 @@ export class AuthService {
     const email = dto.email.trim().toLowerCase();
     const user = await this.usersRepository.findOne({
       where: { email },
-      select: ['id', 'email', 'passwordHash', 'role'],
+      select: [
+        'id',
+        'email',
+        'fullName',
+        'passwordHash',
+        'role',
+      ],
     });
 
     if (!user) {
@@ -81,6 +89,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        fullName: user.fullName ?? '',
         role: user.role,
       },
     };

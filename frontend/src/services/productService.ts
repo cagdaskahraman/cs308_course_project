@@ -1,6 +1,8 @@
 import type { Product } from '../types/product';
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3000';
+import { API_BASE_URL } from '../config/apiBase';
+
+const apiBaseUrl = API_BASE_URL;
 
 /** Avoid infinite “Loading…” if the API is down or unreachable. */
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -33,10 +35,30 @@ const toAbsoluteImageUrl = (imageUrl: string): string => {
   return `${apiBaseUrl}${imageUrl}`;
 };
 
+function mapProductFromApi(raw: Product): Product {
+  return {
+    id: raw.id,
+    name: raw.name,
+    description: raw.description,
+    price: Number(raw.price),
+    listPrice: raw.listPrice != null ? Number(raw.listPrice) : undefined,
+    discountRate: raw.discountRate != null ? Number(raw.discountRate) : undefined,
+    stockQuantity: raw.stockQuantity,
+    category: raw.category,
+    imageUrl: toAbsoluteImageUrl(raw.imageUrl),
+    model: raw.model ?? null,
+    serialNumber: raw.serialNumber ?? null,
+    warrantyStatus: raw.warrantyStatus ?? null,
+    distributorInfo: raw.distributorInfo ?? null,
+    averageRating: Number(raw.averageRating ?? 0),
+    reviewCount: Number(raw.reviewCount ?? 0),
+  };
+}
+
 export type ProductQueryParams = {
   category?: string | null;
   search?: string;
-  sortBy?: 'price';
+  sortBy?: 'price' | 'popularity';
   sortOrder?: 'asc' | 'desc';
 };
 
@@ -53,15 +75,12 @@ export const getProducts = async (params?: ProductQueryParams | string | null): 
   if (opts.sortOrder) url.searchParams.append('sortOrder', opts.sortOrder);
 
   const data = await fetchJson<Product[]>(url.toString());
-  return data.map((product) => ({
-    ...product,
-    imageUrl: toAbsoluteImageUrl(product.imageUrl),
-  }));
+  return data.map(mapProductFromApi);
 };
 
 export const getProductById = async (id: string): Promise<Product> => {
   const product = await fetchJson<Product>(`${apiBaseUrl}/products/${id}`);
-  return { ...product, imageUrl: toAbsoluteImageUrl(product.imageUrl) };
+  return mapProductFromApi(product);
 };
 
 export const getCategories = async (): Promise<string[]> => {
