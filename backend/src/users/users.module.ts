@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminRoleGuard } from '../common/auth/admin-role.guard';
 import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 import { AdminUsersController } from './admin-users.controller';
+import { UsersController } from './users.controller';
 import { User } from './entities/user.entity';
 import { UsersDevSeedService } from './users-dev-seed.service';
 import { UsersService } from './users.service';
@@ -17,7 +18,7 @@ import { UsersService } from './users.service';
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  controllers: [AdminUsersController],
+  controllers: [AdminUsersController, UsersController],
   providers: [
     UsersService,
     UsersDevSeedService,
