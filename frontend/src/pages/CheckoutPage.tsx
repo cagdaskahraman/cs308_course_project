@@ -330,12 +330,6 @@ export const CheckoutPage = (): JSX.Element => {
               />
             </div>
           </div>
-          <p className="text-secondary small mb-0 mt-3 d-flex align-items-start gap-2">
-            <i className="bi bi-info-circle mt-1" aria-hidden />
-            <span>
-              Mock payment for course demo. Card details are validated (including Luhn) and are not stored on the server.
-            </span>
-          </p>
         </div>
       </div>
     </>
