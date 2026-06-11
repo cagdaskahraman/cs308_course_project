@@ -272,7 +272,59 @@ export class OrdersService {
     return order;
   }
 
+  async cancelForUser(orderId: string, userId: string): Promise<Order> {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      select: ['id', 'userId', 'status'],
+    });
+    if (!order) {
+      throw new NotFoundException(`Order not found: ${orderId}`);
+    }
+    if (order.userId !== userId) {
+      throw new ForbiddenException('You are not allowed to cancel this order');
+    }
+    return this.updateStatus(orderId, { status: OrderStatus.Cancelled });
+  }
+
   async updateStatus(id: string, dto: UpdateOrderStatusDto): Promise<Order> {
+    const next = dto.status;
+
+    if (next === OrderStatus.Cancelled) {
+      return this.dataSource.transaction(async (manager) => {
+        const order = await manager.findOne(Order, {
+          where: { id },
+          relations: { items: { product: true } },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!order) {
+          throw new NotFoundException(`Order not found: ${id}`);
+        }
+        if (!OrdersService.isValidStatusTransition(order.status, next)) {
+          throw new BadRequestException(
+            `Invalid status transition from '${order.status}' to '${next}'`,
+          );
+        }
+
+        for (const item of order.items) {
+          const product = await manager.findOne(Product, {
+            where: { id: item.product.id },
+            lock: { mode: 'pessimistic_write' },
+          });
+          if (product) {
+            product.stockQuantity += item.quantity;
+            await manager.save(product);
+          }
+        }
+
+        order.status = OrderStatus.Cancelled;
+        await manager.save(order);
+        return manager.findOneOrFail(Order, {
+          where: { id },
+          relations: { items: { product: true } },
+        });
+      });
+    }
+
     const order = await this.orderRepository.findOne({
       where: { id },
       relations: { items: true },
@@ -281,7 +333,6 @@ export class OrdersService {
       throw new NotFoundException(`Order not found: ${id}`);
     }
 
-    const next = dto.status;
     if (!OrdersService.isValidStatusTransition(order.status, next)) {
       throw new BadRequestException(
         `Invalid status transition from '${order.status}' to '${next}'`,

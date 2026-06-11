@@ -171,6 +171,23 @@ export class OrdersController {
     return this.ordersService.updateStatus(id, body);
   }
 
+  @Post(':id/cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Cancel my order',
+    description:
+      'Allows the authenticated customer to cancel their own processing order and restore stock.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: Order })
+  cancelMyOrder(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: AuthUserPayload,
+  ): Promise<Order> {
+    return this.ordersService.cancelForUser(id, user.sub);
+  }
+
   @Patch(':id/items/:itemId/status')
   @UseGuards(JwtAuthGuard, StaffRoleGuard)
   @ApiBearerAuth()
