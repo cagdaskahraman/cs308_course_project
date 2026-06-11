@@ -106,4 +106,29 @@ describe('encryptedColumnTransformer', () => {
     const legacy = 'plain old address';
     expect(encryptedColumnTransformer.from(legacy)).toBe(legacy);
   });
+
+  it('round-trips invoice billing fields', () => {
+    const fields = [
+      'buyer@example.com',
+      '4242',
+      'AUTH-TEST-REF-001',
+    ];
+    for (const value of fields) {
+      const stored = encryptedColumnTransformer.to(value);
+      expect(stored).not.toBe(value);
+      expect(encryptedColumnTransformer.from(stored as string)).toBe(value);
+    }
+  });
+});
+
+describe('encrypt / decrypt edge cases', () => {
+  it('round-trips empty string', () => {
+    expect(decrypt(encrypt(''))).toBe('');
+  });
+
+  it('round-trips long billing address text', () => {
+    const address =
+      'Moda Mah. Caferaga Sok. No:12 D:4 Kadikoy Istanbul 34710 Turkey';
+    expect(decrypt(encrypt(address))).toBe(address);
+  });
 });
