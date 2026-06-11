@@ -5,8 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as fs from 'fs';
-import * as path from 'path';
 import { EntityManager, Repository } from 'typeorm';
 
 import { PaymentResultDto } from '../payments/dto/payment-result.dto';
@@ -19,9 +17,6 @@ import { InvoicePdfService } from './invoice-pdf.service';
 @Injectable()
 export class InvoicesService {
   private readonly logger = new Logger(InvoicesService.name);
-  private readonly storageRoot = path.resolve(
-    process.env.INVOICE_STORAGE_DIR ?? 'storage/invoices',
-  );
 
   constructor(
     @InjectRepository(Invoice)
@@ -67,7 +62,6 @@ export class InvoicesService {
   async deliverInvoiceForOrder(orderId: string): Promise<InvoiceDto> {
     const dto = await this.getByOrderId(orderId);
     const pdf = this.pdfService.generate(dto);
-    this.writePdfToDisk(dto.invoiceNumber, pdf);
     await this.mailer.sendInvoice(dto, pdf);
     return dto;
   }
@@ -143,19 +137,6 @@ export class InvoicesService {
       actor.role === 'product_manager' || actor.role === 'sales_manager';
     if (!isStaff && invoice.order.userId !== actor.sub) {
       throw new ForbiddenException('You are not allowed to access this invoice');
-    }
-  }
-
-  private writePdfToDisk(invoiceNumber: string, pdf: Buffer): void {
-    try {
-      fs.mkdirSync(this.storageRoot, { recursive: true });
-      const filePath = path.join(this.storageRoot, `${invoiceNumber}.pdf`);
-      fs.writeFileSync(filePath, pdf);
-      this.logger.log(`[Invoice] PDF stored at ${filePath}`);
-    } catch (err) {
-      this.logger.warn(
-        `[Invoice] Could not persist PDF for ${invoiceNumber}: ${(err as Error).message}`,
-      );
     }
   }
 
