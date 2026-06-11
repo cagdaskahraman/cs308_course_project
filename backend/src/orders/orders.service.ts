@@ -265,7 +265,7 @@ export class OrdersService {
   ): Promise<Order> {
     const order = await this.findOne(id);
     const isStaff =
-      actor.role === 'product_manager' || actor.role === 'admin';
+      actor.role === 'product_manager';
     if (!isStaff && order.userId !== actor.sub) {
       throw new ForbiddenException('You are not allowed to access this order');
     }

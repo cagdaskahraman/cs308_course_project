@@ -14,9 +14,9 @@ export class ProductManagerGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const user = request.user;
     const isStaff =
-      user?.role === UserRole.PRODUCT_MANAGER || user?.role === UserRole.ADMIN;
+      user?.role === UserRole.PRODUCT_MANAGER;
     if (!isStaff) {
-      throw new ForbiddenException('product manager or admin role required');
+      throw new ForbiddenException('product manager role required');
     }
     return true;
   }

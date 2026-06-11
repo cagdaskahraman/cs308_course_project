@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 
 import { User, UserRole } from './entities/user.entity';
 
-type DemoUserSeed = {
+type StaffUserSeed = {
   email: string;
   password: string;
   role: UserRole;
@@ -30,21 +30,15 @@ export class UsersDevSeedService implements OnApplicationBootstrap {
       return;
     }
 
-    const demoUsers: DemoUserSeed[] = [
-      {
-        email: process.env.DEMO_ADMIN_EMAIL ?? 'admin@electrostore.local',
-        password: process.env.DEMO_ADMIN_PASSWORD ?? 'Admin123!',
-        role: UserRole.ADMIN,
-        fullName: 'Demo Admin',
-        taxId: 'ADMIN-0001',
-        homeAddress: 'Istanbul, Levent',
-      },
+    await this.demoteLegacyAdminAccounts();
+
+    const staffUsers: StaffUserSeed[] = [
       {
         email:
           process.env.DEMO_PRODUCT_MANAGER_EMAIL ?? 'pm@electrostore.local',
         password: process.env.DEMO_PRODUCT_MANAGER_PASSWORD ?? 'Manager123!',
         role: UserRole.PRODUCT_MANAGER,
-        fullName: 'Demo Product Manager',
+        fullName: 'Catalog Operations',
         taxId: 'PM-0001',
         homeAddress: 'Istanbul, Besiktas',
       },
@@ -53,26 +47,39 @@ export class UsersDevSeedService implements OnApplicationBootstrap {
           process.env.DEMO_SALES_MANAGER_EMAIL ?? 'sm@electrostore.local',
         password: process.env.DEMO_SALES_MANAGER_PASSWORD ?? 'Sales123!',
         role: UserRole.SALES_MANAGER,
-        fullName: 'Demo Sales Manager',
+        fullName: 'Sales Operations',
         taxId: 'SM-0001',
         homeAddress: 'Istanbul, Kadikoy',
       },
     ];
 
-    for (const demoUser of demoUsers) {
-      await this.ensureDemoUser(demoUser);
+    for (const staffUser of staffUsers) {
+      await this.ensureStaffUser(staffUser);
     }
   }
 
-  private async ensureDemoUser(seed: DemoUserSeed): Promise<void> {
+  private async demoteLegacyAdminAccounts(): Promise<void> {
+    const demoted = await this.usersRepository.update(
+      { role: UserRole.ADMIN },
+      { role: UserRole.PRODUCT_MANAGER },
+    );
+    if (demoted.affected && demoted.affected > 0) {
+      this.logger.log(
+        `Demoted ${demoted.affected} legacy admin account(s) to product_manager.`,
+      );
+    }
+  }
+
+  private async ensureStaffUser(seed: StaffUserSeed): Promise<void> {
     const email = seed.email.trim().toLowerCase();
     const existing = await this.usersRepository.findOne({
       where: { email },
       select: ['id', 'email', 'role'],
     });
 
+    const passwordHash = await bcrypt.hash(seed.password, 10);
+
     if (!existing) {
-      const passwordHash = await bcrypt.hash(seed.password, 10);
       await this.usersRepository.save(
         this.usersRepository.create({
           email,
@@ -83,16 +90,18 @@ export class UsersDevSeedService implements OnApplicationBootstrap {
           role: seed.role,
         }),
       );
-      this.logger.log(
-        `Seeded demo ${seed.role} account (${email}) for progress demo.`,
-      );
+      this.logger.log(`Seeded staff account ${email} (${seed.role}).`);
       return;
     }
 
+    const updates: Partial<User> = { passwordHash };
     if (existing.role !== seed.role) {
-      await this.usersRepository.update({ id: existing.id }, { role: seed.role });
+      updates.role = seed.role;
+    }
+    await this.usersRepository.update({ id: existing.id }, updates);
+    if (existing.role !== seed.role) {
       this.logger.log(
-        `Updated role for demo account ${email}: ${existing.role} -> ${seed.role}.`,
+        `Updated role for staff account ${email}: ${existing.role} -> ${seed.role}.`,
       );
     }
   }

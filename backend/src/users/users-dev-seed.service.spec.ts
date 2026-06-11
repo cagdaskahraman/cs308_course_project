@@ -20,8 +20,6 @@ describe('UsersDevSeedService', () => {
       ...oldEnv,
       NODE_ENV: 'test',
       AUTO_SEED_USERS: 'true',
-      DEMO_ADMIN_EMAIL: 'admin@test.local',
-      DEMO_ADMIN_PASSWORD: 'Admin123!',
       DEMO_PRODUCT_MANAGER_EMAIL: 'pm@test.local',
       DEMO_PRODUCT_MANAGER_PASSWORD: 'Manager123!',
       DEMO_SALES_MANAGER_EMAIL: 'sm@test.local',
@@ -32,7 +30,7 @@ describe('UsersDevSeedService', () => {
       findOne: jest.fn(),
       create: jest.fn((v) => v),
       save: jest.fn(),
-      update: jest.fn(),
+      update: jest.fn().mockResolvedValue({ affected: 0 }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -52,37 +50,32 @@ describe('UsersDevSeedService', () => {
     process.env = oldEnv;
   });
 
-  it('creates demo users when they do not exist', async () => {
+  it('creates PM and SM staff accounts when they do not exist', async () => {
     usersRepository.findOne.mockResolvedValue(null);
     usersRepository.save.mockResolvedValue(undefined);
 
     await service.onApplicationBootstrap();
 
-    expect(usersRepository.save).toHaveBeenCalledTimes(3);
+    expect(usersRepository.update).toHaveBeenCalledWith(
+      { role: UserRole.ADMIN },
+      { role: UserRole.PRODUCT_MANAGER },
+    );
+    expect(usersRepository.save).toHaveBeenCalledTimes(2);
     const roles = usersRepository.save.mock.calls.map(
       (call) => call[0].role as UserRole,
     );
-    expect(roles).toEqual([
-      UserRole.ADMIN,
-      UserRole.PRODUCT_MANAGER,
-      UserRole.SALES_MANAGER,
-    ]);
+    expect(roles).toEqual([UserRole.PRODUCT_MANAGER, UserRole.SALES_MANAGER]);
   });
 
-  it('updates role when demo user exists with wrong role', async () => {
+  it('updates role when staff account exists with wrong role', async () => {
     usersRepository.findOne
       .mockResolvedValueOnce({
         id: 'user-1',
-        email: 'admin@test.local',
+        email: 'pm@test.local',
         role: UserRole.CUSTOMER,
       })
       .mockResolvedValueOnce({
         id: 'user-2',
-        email: 'pm@test.local',
-        role: UserRole.PRODUCT_MANAGER,
-      })
-      .mockResolvedValueOnce({
-        id: 'user-3',
         email: 'sm@test.local',
         role: UserRole.SALES_MANAGER,
       });
@@ -92,7 +85,10 @@ describe('UsersDevSeedService', () => {
     expect(usersRepository.save).not.toHaveBeenCalled();
     expect(usersRepository.update).toHaveBeenCalledWith(
       { id: 'user-1' },
-      { role: UserRole.ADMIN },
+      expect.objectContaining({
+        role: UserRole.PRODUCT_MANAGER,
+        passwordHash: expect.any(String),
+      }),
     );
   });
 });
