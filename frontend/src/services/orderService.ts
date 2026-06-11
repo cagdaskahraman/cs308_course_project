@@ -12,6 +12,12 @@ export type OrderItem = {
   product: { id: string; name: string; imageUrl: string };
 };
 
+export type OrderCustomer = {
+  id: string;
+  email: string;
+  fullName: string | null;
+};
+
 export type Order = {
   id: string;
   orderDate: string;
@@ -20,6 +26,22 @@ export type Order = {
   userId?: string | null;
   deliveryAddress?: string | null;
   items: OrderItem[];
+};
+
+export type StaffOrder = Order & {
+  customer: OrderCustomer | null;
+};
+
+export type DeliveryListItem = {
+  deliveryId: string;
+  customerId: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  totalPrice: number;
+  deliveryAddress: string;
+  completed: boolean;
+  orderId: string;
 };
 
 export type PaymentDetails = {
@@ -103,8 +125,21 @@ export async function getMyOrders(): Promise<Order[]> {
   });
 }
 
-export async function getAllOrdersForStaff(): Promise<Order[]> {
-  return request<Order[]>(`${apiBaseUrl}/orders`, {
+export async function getAllOrdersForStaff(): Promise<StaffOrder[]> {
+  return request<StaffOrder[]>(`${apiBaseUrl}/orders`, {
+    headers: { ...authHeader() },
+  });
+}
+
+export async function getDeliveryList(): Promise<DeliveryListItem[]> {
+  return request<DeliveryListItem[]>(`${apiBaseUrl}/orders/deliveries/list`, {
+    headers: { ...authHeader() },
+  });
+}
+
+export async function cancelOrder(orderId: string): Promise<Order> {
+  return request<Order>(`${apiBaseUrl}/orders/${orderId}/cancel`, {
+    method: 'POST',
     headers: { ...authHeader() },
   });
 }

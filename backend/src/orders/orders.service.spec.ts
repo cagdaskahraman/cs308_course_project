@@ -5,23 +5,44 @@ import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm';
 import { InvoicesService } from '../invoices/invoices.service';
 import { PaymentsService } from '../payments/payments.service';
 import { User } from '../users/entities/user.entity';
+import { OrderItemStatus } from './entities/order-item-status.enum';
 import { OrderStatus } from './entities/order-status.enum';
 import { Order } from './entities/order.entity';
 import { OrdersService } from './orders.service';
 
 describe('OrdersService', () => {
   let service: OrdersService;
+  let usersRepository: { findOne: jest.Mock; find: jest.Mock };
   let orderRepository: {
     find: jest.Mock;
     findOne: jest.Mock;
     save: jest.Mock;
   };
+  let transactionManager: {
+    findOne: jest.Mock;
+    findOneOrFail: jest.Mock;
+    save: jest.Mock;
+  };
+  let dataSource: { transaction: jest.Mock; manager: { save: jest.Mock } };
 
   beforeEach(async () => {
+    usersRepository = {
+      findOne: jest.fn(),
+      find: jest.fn().mockResolvedValue([]),
+    };
     orderRepository = {
       find: jest.fn().mockResolvedValue([]),
       findOne: jest.fn(),
       save: jest.fn(),
+    };
+    transactionManager = {
+      findOne: jest.fn(),
+      findOneOrFail: jest.fn(),
+      save: jest.fn(async (value) => value),
+    };
+    dataSource = {
+      transaction: jest.fn(async (cb) => cb(transactionManager)),
+      manager: { save: jest.fn() },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -33,7 +54,7 @@ describe('OrdersService', () => {
         },
         {
           provide: getRepositoryToken(User),
-          useValue: { findOne: jest.fn() },
+          useValue: usersRepository,
         },
         {
           provide: InvoicesService,
@@ -45,11 +66,7 @@ describe('OrdersService', () => {
         },
         {
           provide: getDataSourceToken(),
-          useValue: {
-            manager: {
-              save: jest.fn(),
-            },
-          },
+          useValue: dataSource,
         },
       ],
     }).compile();
@@ -63,6 +80,54 @@ describe('OrdersService', () => {
       relations: { items: { product: true } },
       order: { orderDate: 'DESC' },
     });
+  });
+
+  it('maps active orders into delivery list rows', async () => {
+    orderRepository.find.mockResolvedValue([
+      {
+        id: 'order-1',
+        userId: 'cust-1',
+        orderDate: new Date('2026-01-15T10:00:00.000Z'),
+        deliveryAddress: 'Istanbul',
+        status: OrderStatus.Processing,
+        items: [
+          {
+            id: 'item-1',
+            quantity: 2,
+            priceAtPurchase: 50,
+            status: OrderItemStatus.Processing,
+            product: { id: 'prod-1', name: 'Phone' },
+          },
+        ],
+      },
+    ]);
+    usersRepository.find.mockResolvedValue([
+      {
+        id: 'cust-1',
+        email: 'buyer@example.com',
+        fullName: 'Buyer One',
+      },
+    ]);
+
+    const rows = await service.listDeliveries();
+
+    expect(rows).toEqual([
+      {
+        deliveryId: 'item-1',
+        customerId: 'cust-1',
+        customerName: 'Buyer One',
+        customerEmail: 'buyer@example.com',
+        productId: 'prod-1',
+        productName: 'Phone',
+        quantity: 2,
+        totalPrice: 100,
+        deliveryAddress: 'Istanbul',
+        itemStatus: OrderItemStatus.Processing,
+        orderDate: new Date('2026-01-15T10:00:00.000Z'),
+        completed: false,
+        orderId: 'order-1',
+      },
+    ]);
   });
 
   it('updates status from processing to in-transit', async () => {
@@ -113,5 +178,35 @@ describe('OrdersService', () => {
         status: OrderStatus.InTransit,
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('cancels an order and restores product stock', async () => {
+    const cancelledOrder = {
+      id: 'order-1',
+      status: OrderStatus.Cancelled,
+      items: [
+        {
+          quantity: 2,
+          product: { id: 'prod-1', name: 'Phone' },
+        },
+      ],
+    };
+    transactionManager.findOne
+      .mockResolvedValueOnce({
+        id: 'order-1',
+        status: OrderStatus.Processing,
+        items: cancelledOrder.items,
+      })
+      .mockResolvedValueOnce({ id: 'prod-1', stockQuantity: 3 });
+    transactionManager.findOneOrFail.mockResolvedValue(cancelledOrder);
+
+    const updated = await service.updateStatus('order-1', {
+      status: OrderStatus.Cancelled,
+    });
+
+    expect(updated.status).toBe(OrderStatus.Cancelled);
+    expect(transactionManager.save).toHaveBeenCalledWith(
+      expect.objectContaining({ stockQuantity: 5 }),
+    );
   });
 });

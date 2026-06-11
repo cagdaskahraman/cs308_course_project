@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 
 import { Cart } from '../cart/entities/cart.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
@@ -16,6 +16,7 @@ import { PaymentResultDto } from '../payments/dto/payment-result.dto';
 import { PaymentsService } from '../payments/payments.service';
 import { Product } from '../products/entities/product.entity';
 import { User } from '../users/entities/user.entity';
+import { DeliveryListItemDto } from './dto/delivery-list-item.dto';
 import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateOrderItemStatusDto } from './dto/update-order-item-status.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -171,10 +172,90 @@ export class OrdersService {
     });
   }
 
-  async findAllForStaff(): Promise<Order[]> {
-    return this.orderRepository.find({
+  async findAllForStaff(): Promise<
+    Array<
+      Order & {
+        customer: { id: string; email: string; fullName: string | null } | null;
+      }
+    >
+  > {
+    const orders = await this.orderRepository.find({
       relations: { items: { product: true } },
       order: { orderDate: 'DESC' },
+    });
+    const userIds = [
+      ...new Set(
+        orders
+          .map((order) => order.userId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const users =
+      userIds.length > 0
+        ? await this.usersRepository.find({
+            where: { id: In(userIds) },
+            select: ['id', 'email', 'fullName'],
+          })
+        : [];
+    const userMap = new Map(users.map((user) => [user.id, user]));
+
+    return orders.map((order) => ({
+      ...order,
+      customer: order.userId
+        ? (userMap.get(order.userId) ?? {
+            id: order.userId,
+            email: 'Unknown customer',
+            fullName: null,
+          })
+        : null,
+    }));
+  }
+
+  async listDeliveries(): Promise<DeliveryListItemDto[]> {
+    const orders = await this.orderRepository.find({
+      where: [
+        { status: OrderStatus.Processing },
+        { status: OrderStatus.InTransit },
+        { status: OrderStatus.Delivered },
+      ],
+      relations: { items: { product: true } },
+      order: { orderDate: 'DESC' },
+    });
+    const userIds = [
+      ...new Set(
+        orders
+          .map((order) => order.userId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const users =
+      userIds.length > 0
+        ? await this.usersRepository.find({
+            where: { id: In(userIds) },
+            select: ['id', 'email', 'fullName'],
+          })
+        : [];
+    const userMap = new Map(users.map((user) => [user.id, user]));
+
+    return orders.flatMap((order) => {
+      const customer = order.userId ? userMap.get(order.userId) : null;
+      return order.items.map((item) => ({
+        deliveryId: item.id,
+        customerId: order.userId ?? 'unknown',
+        customerName: customer?.fullName?.trim() || customer?.email || 'Guest',
+        customerEmail: customer?.email ?? '—',
+        productId: item.product.id,
+        productName: item.product.name,
+        quantity: item.quantity,
+        totalPrice:
+          Math.round(item.quantity * Number(item.priceAtPurchase) * 100) /
+          100,
+        deliveryAddress: order.deliveryAddress ?? '—',
+        itemStatus: item.status,
+        orderDate: order.orderDate,
+        completed: item.status === OrderItemStatus.Delivered,
+        orderId: order.id,
+      }));
     });
   }
 
@@ -191,7 +272,59 @@ export class OrdersService {
     return order;
   }
 
+  async cancelForUser(orderId: string, userId: string): Promise<Order> {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      select: ['id', 'userId', 'status'],
+    });
+    if (!order) {
+      throw new NotFoundException(`Order not found: ${orderId}`);
+    }
+    if (order.userId !== userId) {
+      throw new ForbiddenException('You are not allowed to cancel this order');
+    }
+    return this.updateStatus(orderId, { status: OrderStatus.Cancelled });
+  }
+
   async updateStatus(id: string, dto: UpdateOrderStatusDto): Promise<Order> {
+    const next = dto.status;
+
+    if (next === OrderStatus.Cancelled) {
+      return this.dataSource.transaction(async (manager) => {
+        const order = await manager.findOne(Order, {
+          where: { id },
+          relations: { items: { product: true } },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!order) {
+          throw new NotFoundException(`Order not found: ${id}`);
+        }
+        if (!OrdersService.isValidStatusTransition(order.status, next)) {
+          throw new BadRequestException(
+            `Invalid status transition from '${order.status}' to '${next}'`,
+          );
+        }
+
+        for (const item of order.items) {
+          const product = await manager.findOne(Product, {
+            where: { id: item.product.id },
+            lock: { mode: 'pessimistic_write' },
+          });
+          if (product) {
+            product.stockQuantity += item.quantity;
+            await manager.save(product);
+          }
+        }
+
+        order.status = OrderStatus.Cancelled;
+        await manager.save(order);
+        return manager.findOneOrFail(Order, {
+          where: { id },
+          relations: { items: { product: true } },
+        });
+      });
+    }
+
     const order = await this.orderRepository.findOne({
       where: { id },
       relations: { items: true },
@@ -200,7 +333,6 @@ export class OrdersService {
       throw new NotFoundException(`Order not found: ${id}`);
     }
 
-    const next = dto.status;
     if (!OrdersService.isValidStatusTransition(order.status, next)) {
       throw new BadRequestException(
         `Invalid status transition from '${order.status}' to '${next}'`,

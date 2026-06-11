@@ -27,6 +27,7 @@ import {
 import { CurrentUser } from '../common/auth/current-user.decorator';
 import { AuthUserPayload, JwtAuthGuard } from '../common/auth/jwt-auth.guard';
 import { StaffRoleGuard } from '../common/auth/staff-role.guard';
+import { DeliveryListItemDto } from './dto/delivery-list-item.dto';
 import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateOrderItemStatusDto } from './dto/update-order-item-status.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -106,6 +107,19 @@ export class OrdersController {
     return this.ordersService.findAllForStaff();
   }
 
+  @Get('deliveries/list')
+  @UseGuards(JwtAuthGuard, StaffRoleGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List delivery lines (staff)',
+    description:
+      'Returns one row per order item with delivery id, customer id, product id, quantity, total, address, and completion flag.',
+  })
+  @ApiOkResponse({ type: [DeliveryListItemDto] })
+  listDeliveries(): Promise<DeliveryListItemDto[]> {
+    return this.ordersService.listDeliveries();
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -155,6 +169,23 @@ export class OrdersController {
     @Body() body: UpdateOrderStatusDto,
   ): Promise<Order> {
     return this.ordersService.updateStatus(id, body);
+  }
+
+  @Post(':id/cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Cancel my order',
+    description:
+      'Allows the authenticated customer to cancel their own processing order and restore stock.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: Order })
+  cancelMyOrder(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: AuthUserPayload,
+  ): Promise<Order> {
+    return this.ordersService.cancelForUser(id, user.sub);
   }
 
   @Patch(':id/items/:itemId/status')
