@@ -64,6 +64,56 @@ describe('PricingService', () => {
     expect(productsRepository.save).toHaveBeenCalled();
   });
 
+  it('notifies wishlist users when save applies a discount to one product', async () => {
+    const product = {
+      id: 'p1',
+      name: 'Phone',
+      listPrice: 100,
+      discountRate: 0,
+      price: 100,
+    } as Product;
+    productsRepository.findOne.mockResolvedValue(product);
+    wishlistRepository.find.mockResolvedValue([
+      {
+        user: { email: 'buyer@example.com' },
+        product: { id: 'p1', name: 'Phone' },
+      },
+    ]);
+
+    await service.updateProductPricing('p1', {
+      listPrice: 100,
+      discountRate: 15,
+    });
+
+    expect(mailer.sendDiscountAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'buyer@example.com',
+        productName: 'Phone',
+        discountRate: 15,
+        newPrice: 85,
+      }),
+    );
+    expect(wishlistRepository.find).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not notify wishlist users when save leaves pricing unchanged', async () => {
+    const product = {
+      id: 'p1',
+      name: 'Phone',
+      listPrice: 100,
+      discountRate: 10,
+      price: 90,
+    } as Product;
+    productsRepository.findOne.mockResolvedValue(product);
+
+    await service.updateProductPricing('p1', {
+      listPrice: 100,
+      discountRate: 10,
+    });
+
+    expect(mailer.sendDiscountAlert).not.toHaveBeenCalled();
+  });
+
   it('throws when pricing target product is missing', async () => {
     productsRepository.findOne.mockResolvedValue(null);
 

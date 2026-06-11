@@ -57,6 +57,7 @@ export const AdminProductsPage = (): JSX.Element => {
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [form, setForm] = useState<AdminProductPayload>(emptyForm);
@@ -93,6 +94,11 @@ export const AdminProductsPage = (): JSX.Element => {
       setError(e instanceof Error ? e.message : 'Failed to load products');
     }
   }, [canManageCatalog, categoryFilter, navigate, search, signOut]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -384,21 +390,25 @@ export const AdminProductsPage = (): JSX.Element => {
               Product inventory
             </h2>
             <div className="row g-2">
-              <div className="col-md-7">
-                <input className="form-control" placeholder="Search name, model, serial, description" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <div className="col-md-8">
+                <label className="form-label" htmlFor="productSearch">Search by product name</label>
+                <input
+                  id="productSearch"
+                  type="search"
+                  className="form-control"
+                  placeholder="Type a product name…"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
               </div>
-              <div className="col-md-3">
-                <select className="form-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+              <div className="col-md-4">
+                <label className="form-label" htmlFor="categoryFilter">Category</label>
+                <select id="categoryFilter" className="form-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
                   <option value="">All categories</option>
                   {sortedCategories.map((category) => (
                     <option key={category} value={category}>{category}</option>
                   ))}
                 </select>
-              </div>
-              <div className="col-md-2 d-grid">
-                <button type="button" className="btn btn-outline-secondary" onClick={() => void load()}>
-                  Filter
-                </button>
               </div>
             </div>
           </div>

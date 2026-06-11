@@ -1,30 +1,24 @@
-import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { TypeOrmModule } from '@nestjs/typeorm';
-
-import { AdminRoleGuard } from '../common/auth/admin-role.guard';
-import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
-import { AdminUsersController } from './admin-users.controller';
-import { UsersController } from './users.controller';
-import { User } from './entities/user.entity';
-import { UsersDevSeedService } from './users-dev-seed.service';
-import { UsersService } from './users.service';
-
-@Module({
-  imports: [
-    TypeOrmModule.forFeature([User]),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET ?? 'dev-jwt-secret-change-me',
-      signOptions: { expiresIn: '1d' },
-    }),
-  ],
-  controllers: [AdminUsersController, UsersController],
-  providers: [
-    UsersService,
-    UsersDevSeedService,
-    JwtAuthGuard,
-    AdminRoleGuard,
-  ],
-  exports: [TypeOrmModule, UsersService],
-})
-export class UsersModule {}
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
+import { UsersController } from './users.controller';
+import { User } from './entities/user.entity';
+import { UsersDevSeedService } from './users-dev-seed.service';
+import { UsersService } from './users.service';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([User]),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET ?? 'dev-jwt-secret-change-me',
+      signOptions: { expiresIn: '1d' },
+    }),
+  ],
+  controllers: [UsersController],
+  providers: [UsersService, UsersDevSeedService, JwtAuthGuard],
+  exports: [TypeOrmModule, UsersService],
+})
+export class UsersModule {}
+

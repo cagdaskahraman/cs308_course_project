@@ -26,3 +26,9 @@ export function getProductPricing(
     savings,
   };
 }
+
+export function computeSalePrice(listPrice: number, discountRate: number): number {
+  const rate = Math.min(100, Math.max(0, discountRate));
+  const effective = listPrice * (1 - rate / 100);
+  return Math.round(effective * 100) / 100;
+}
