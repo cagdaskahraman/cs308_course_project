@@ -37,4 +37,11 @@ describe('PaymentsService', () => {
       service.authorize(10, { ...validCard, cardNumber: '4242424242424241' }),
     ).toThrow(BadRequestException);
   });
+
+  it('issues a mock refund with a refund reference', () => {
+    const result = service.refund(49.99, 'AUTH-ABC123');
+    expect(result.status).toBe(PaymentStatus.REFUNDED);
+    expect(result.amount).toBe(49.99);
+    expect(result.authorizationReference).toMatch(/^REFUND-/);
+  });
 });

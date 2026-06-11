@@ -13,6 +13,7 @@ import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminOrdersPage } from './pages/AdminOrdersPage';
 import { AdminProductsPage } from './pages/AdminProductsPage';
 import { AdminPricingPage } from './pages/AdminPricingPage';
+import { AdminReturnsPage } from './pages/AdminReturnsPage';
 import { ProfilePage } from './pages/ProfilePage';
 
 export const App = (): JSX.Element => (
@@ -37,6 +38,7 @@ export const App = (): JSX.Element => (
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/pricing" element={<AdminPricingPage />} />
+          <Route path="/admin/returns" element={<AdminReturnsPage />} />
         </Routes>
       </section>
     </main>
