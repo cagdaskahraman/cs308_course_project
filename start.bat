@@ -111,7 +111,22 @@ if errorlevel 1 (
 )
 popd
 
-echo [4/4] Opening Backend and Frontend in new windows...
+echo Clearing dev ports 3000 and 5173 if already in use...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\clear-dev-ports.ps1"
+if errorlevel 1 (
+  echo WARNING: Could not clear one or more dev ports. Continuing anyway...
+)
+
+echo [4/4] Building backend and opening Backend and Frontend in new windows...
+pushd "%~dp0backend"
+call npm run build
+if errorlevel 1 (
+  echo ERROR: backend build failed.
+  popd
+  exit /b 1
+)
+popd
+
 start "CS308 Backend" /D "%~dp0backend" cmd /k "npm run start"
 start "CS308 Frontend" /D "%~dp0frontend" cmd /k "npm run dev"
 
