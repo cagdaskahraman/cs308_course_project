@@ -7,27 +7,23 @@ import { getSavedCartId, mergeGuestCartWithUser } from '../services/cartService'
 
 const resolveSafeNextPath = (
   rawNext: string | null,
-  role: 'customer' | 'product_manager' | 'sales_manager' | 'admin',
+  role: 'customer' | 'product_manager' | 'sales_manager',
 ): string => {
   if (!rawNext || !rawNext.startsWith('/')) return '/';
 
-  const isAdminArea = rawNext.startsWith('/admin');
-  if (!isAdminArea) return rawNext;
+  const isStaffArea = rawNext.startsWith('/admin');
+  if (!isStaffArea) return rawNext;
 
-  if (rawNext.startsWith('/admin/users')) {
-    return role === 'admin' ? rawNext : '/';
+  if (rawNext.startsWith('/admin/pricing') || rawNext.startsWith('/admin/returns')) {
+    return role === 'sales_manager' ? rawNext : '/';
   }
 
-  if (rawNext.startsWith('/admin/pricing')) {
-    return role === 'sales_manager' || role === 'admin' ? rawNext : '/';
-  }
-
-  if (rawNext.startsWith('/admin/orders') || rawNext.startsWith('/admin/reviews')) {
-    return role === 'admin' || role === 'product_manager' ? rawNext : '/';
-  }
-
-  if (rawNext.startsWith('/admin/products')) {
-    return role === 'admin' || role === 'product_manager' ? rawNext : '/';
+  if (
+    rawNext.startsWith('/admin/orders') ||
+    rawNext.startsWith('/admin/reviews') ||
+    rawNext.startsWith('/admin/products')
+  ) {
+    return role === 'product_manager' ? rawNext : '/';
   }
 
   return '/';
@@ -66,12 +62,13 @@ export const LoginPage = (): JSX.Element => {
   };
 
   return (
-    <div className="row justify-content-center">
-      <div className="col-12 col-md-6 col-lg-4">
-        <h2 className="mb-3 d-inline-flex align-items-center gap-2">
-          <i className="bi bi-box-arrow-in-right text-primary" aria-hidden />
-          Login
-        </h2>
+    <div className="auth-shell">
+      <div className="auth-card">
+        <div className="auth-card__icon">
+          <i className="bi bi-box-arrow-in-right" aria-hidden />
+        </div>
+        <h2 className="auth-card__title">Welcome back</h2>
+        <p className="auth-card__subtitle">Sign in to track orders, manage your profile, and checkout faster.</p>
         {error && (
           <div className="alert alert-danger d-flex align-items-center gap-2" role="alert">
             <i className="bi bi-exclamation-circle-fill" aria-hidden />
@@ -128,8 +125,8 @@ export const LoginPage = (): JSX.Element => {
             )}
           </button>
         </form>
-        <p className="mt-3 mb-0">
-          No account? <Link to="/register">Register</Link>
+        <p className="mt-4 mb-0 text-center text-secondary">
+          No account? <Link to="/register" className="fw-semibold">Create one</Link>
         </p>
       </div>
     </div>
