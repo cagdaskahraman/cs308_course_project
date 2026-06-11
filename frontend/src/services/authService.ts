@@ -9,7 +9,7 @@ export type AuthUser = {
   id: string;
   email: string;
   fullName?: string;
-  role: 'customer' | 'product_manager' | 'admin';
+  role: 'customer' | 'product_manager' | 'sales_manager' | 'admin';
 };
 
 type LoginResponse = {

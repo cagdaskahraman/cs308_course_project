@@ -3,7 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
-import { StaffRoleGuard } from '../common/auth/staff-role.guard';
+import { ProductManagerRoleGuard } from '../common/auth/product-manager-role.guard';
 import { OrderItem } from '../orders/entities/order-item.entity';
 import { AdminProductsController } from './admin-products.controller';
 import { ProductCategory } from './entities/product-category.entity';
@@ -21,7 +21,7 @@ import { ProductsService } from './products.service';
     }),
   ],
   controllers: [ProductsController, AdminProductsController],
-  providers: [ProductsService, ProductsDevSeedService, JwtAuthGuard, StaffRoleGuard],
+  providers: [ProductsService, ProductsDevSeedService, JwtAuthGuard, ProductManagerRoleGuard],
   exports: [ProductsService],
 })
 export class ProductsModule {}

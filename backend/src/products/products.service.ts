@@ -156,7 +156,12 @@ export class ProductsService {
     await this.ensureSerialNumberAvailable(normalized.serialNumber);
     await this.ensureCategoryExists(normalized.category);
 
-    const product = this.productsRepository.create(normalized);
+    const product = this.productsRepository.create({
+      ...normalized,
+      listPrice: 0,
+      discountRate: 0,
+      price: 0,
+    });
     return this.productsRepository.save(product);
   }
 
@@ -182,7 +187,12 @@ export class ProductsService {
   }
 
   async updateStock(id: string, dto: UpdateProductStockDto): Promise<Product> {
-    return this.updateProduct(id, { stockQuantity: dto.stockQuantity });
+    const product = await this.productsRepository.findOne({ where: { id } });
+    if (!product) {
+      throw new NotFoundException(`Product with id '${id}' not found`);
+    }
+    product.stockQuantity = dto.stockQuantity;
+    return this.productsRepository.save(product);
   }
 
   async deleteProduct(id: string): Promise<void> {

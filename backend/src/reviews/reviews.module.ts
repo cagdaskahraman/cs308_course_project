@@ -7,7 +7,7 @@ import { OrderItem } from '../orders/entities/order-item.entity';
 import { Product } from '../products/entities/product.entity';
 import { User } from '../users/entities/user.entity';
 import { Review } from './entities/review.entity';
-import { ProductManagerGuard } from './guards/product-manager.guard';
+import { ProductManagerRoleGuard } from '../common/auth/product-manager-role.guard';
 import { ReviewsController } from './reviews.controller';
 import { ReviewsService } from './reviews.service';
 
@@ -20,7 +20,7 @@ import { ReviewsService } from './reviews.service';
     }),
   ],
   controllers: [ReviewsController],
-  providers: [ReviewsService, ProductManagerGuard, JwtAuthGuard],
+  providers: [ReviewsService, ProductManagerRoleGuard, JwtAuthGuard],
   exports: [ReviewsService, TypeOrmModule],
 })
 export class ReviewsModule {}

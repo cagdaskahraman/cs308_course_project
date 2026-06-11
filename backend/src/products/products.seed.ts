@@ -65,6 +65,8 @@ export type DbProductSeed = {
   name: string;
   description: string;
   price: number;
+  listPrice: number;
+  discountRate: number;
   stockQuantity: number;
   category: string;
   imageUrl: string;
@@ -81,6 +83,8 @@ export const dbProductsSeed: DbProductSeed[] = productSeedInput.map((item) => ({
   category: item.category,
   stockQuantity: item.stockQuantity,
   price: item.price,
+  listPrice: item.price,
+  discountRate: 0,
   imageUrl: item.imageUrl,
   model: item.model,
   serialNumber: item.serialNumber,

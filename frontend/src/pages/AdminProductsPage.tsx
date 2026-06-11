@@ -27,11 +27,9 @@ const emptyForm: AdminProductPayload = {
   description: '',
   category: '',
   imageUrl: '',
-  price: 1,
   stockQuantity: 0,
   warrantyStatus: '',
   distributorInfo: '',
-  popularity: 0,
 };
 
 function toForm(product: Product): AdminProductPayload {
@@ -42,11 +40,9 @@ function toForm(product: Product): AdminProductPayload {
     description: product.description,
     category: product.category,
     imageUrl: product.imageUrl,
-    price: product.price,
     stockQuantity: product.stockQuantity,
     warrantyStatus: product.warrantyStatus ?? '',
     distributorInfo: product.distributorInfo ?? '',
-    popularity: product.popularity ?? 0,
   };
 }
 
@@ -290,7 +286,7 @@ export const AdminProductsPage = (): JSX.Element => {
             Catalog management
           </h2>
           <p className="text-secondary mb-0">
-            Add products, update pricing and stock, and maintain category names.
+            Add products, manage stock, and maintain category names. Pricing is handled by sales managers.
           </p>
         </div>
         <button type="button" className="btn btn-outline-secondary align-self-start" onClick={resetForm}>
@@ -336,20 +332,12 @@ export const AdminProductsPage = (): JSX.Element => {
                     </datalist>
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label" htmlFor="productPrice">Price</label>
-                    <input id="productPrice" type="number" min="0.01" step="0.01" className="form-control" value={form.price} onChange={(e) => updateFormField('price', Number(e.target.value))} required />
-                  </div>
-                  <div className="col-md-6">
                     <label className="form-label" htmlFor="productStock">Stock</label>
                     <input id="productStock" type="number" min="0" step="1" className="form-control" value={form.stockQuantity} onChange={(e) => updateFormField('stockQuantity', Number(e.target.value))} required />
                   </div>
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="productWarranty">Warranty</label>
                     <input id="productWarranty" className="form-control" value={form.warrantyStatus} onChange={(e) => updateFormField('warrantyStatus', e.target.value)} required />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label" htmlFor="productPopularity">Popularity</label>
-                    <input id="productPopularity" type="number" min="0" step="1" className="form-control" value={form.popularity ?? 0} onChange={(e) => updateFormField('popularity', Number(e.target.value))} />
                   </div>
                   <div className="col-12">
                     <label className="form-label" htmlFor="productImage">Image URL</label>
@@ -445,7 +433,7 @@ export const AdminProductsPage = (): JSX.Element => {
                         </div>
                       </td>
                       <td><span className="badge text-bg-light">{product.category}</span></td>
-                      <td>{formatPrice(product.price)}</td>
+                      <td>{product.price > 0 ? formatPrice(product.price) : 'Awaiting pricing'}</td>
                       <td style={{ minWidth: 170 }}>
                         <div className="input-group input-group-sm">
                           <button type="button" className="btn btn-outline-secondary" disabled={busyId === product.id || product.stockQuantity === 0} onClick={() => void applyStock(product, Math.max(0, product.stockQuantity - 1))}>-</button>

@@ -5,7 +5,7 @@ const apiBaseUrl = API_BASE_URL;
 export type AdminDirectoryUser = {
   id: string;
   email: string;
-  role: 'customer' | 'product_manager' | 'admin';
+  role: 'customer' | 'product_manager' | 'sales_manager' | 'admin';
   createdAt: string;
 };
 

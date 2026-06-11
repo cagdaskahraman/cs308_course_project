@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { getCategories, getProducts } from '../services/productService';
 import { getOrCreateCartId, addCartItem } from '../services/cartService';
 import { useToast } from '../context/ToastContext';
-import { formatPrice } from '../utils/formatPrice';
+import { ProductDiscountBadge, ProductPriceDisplay } from '../components/ProductPriceDisplay';
+import { getProductPricing } from '../utils/productPricing';
 import type { Product } from '../types/product';
 
 type SortOption =
@@ -79,7 +80,7 @@ export const CatalogPage = (): JSX.Element => {
 
   const handleAddToCart = useCallback(
     async (product: Product) => {
-      if (product.stockQuantity <= 0) return;
+      if (product.stockQuantity <= 0 || product.price <= 0) return;
       setAddingId(product.id);
       try {
         const cartId = await getOrCreateCartId();
@@ -129,7 +130,8 @@ export const CatalogPage = (): JSX.Element => {
             style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}
           >
             <article className="card product-card h-100 border-0 shadow-sm">
-              <Link to={`/products/${product.id}`} className="d-block overflow-hidden">
+              <Link to={`/products/${product.id}`} className="d-block overflow-hidden product-image-wrap">
+                <ProductDiscountBadge product={product} />
                 <img className="card-img-top product-image" src={product.imageUrl} alt={product.name} />
               </Link>
               <div className="card-body d-flex flex-column">
@@ -160,11 +162,8 @@ export const CatalogPage = (): JSX.Element => {
                     {(product.reviewCount ?? 0) === 1 ? '' : 's'}
                   </span>
                 </div>
-                <div className="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
-                  <span className="fw-bold fs-5 text-primary d-inline-flex align-items-center gap-1">
-                    <i className="bi bi-currency-exchange" aria-hidden />
-                    {formatPrice(product.price)}
-                  </span>
+                <div className="d-flex justify-content-between align-items-end mt-2 flex-wrap gap-2">
+                  <ProductPriceDisplay product={product} size="md" showSavings={getProductPricing(product).hasDiscount} />
                   <span
                     className={`small d-inline-flex align-items-center gap-1 ${product.stockQuantity > 0 ? 'text-success' : 'text-danger'}`}
                   >
@@ -175,13 +174,18 @@ export const CatalogPage = (): JSX.Element => {
                 <button
                   type="button"
                   className="btn btn-primary btn-sm mt-3 w-100 d-inline-flex align-items-center justify-content-center gap-2"
-                  disabled={product.stockQuantity <= 0 || addingId === product.id}
+                  disabled={product.stockQuantity <= 0 || product.price <= 0 || addingId === product.id}
                   onClick={() => void handleAddToCart(product)}
                 >
                   {product.stockQuantity <= 0 ? (
                     <>
                       <i className="bi bi-slash-circle" aria-hidden />
                       Out of stock
+                    </>
+                  ) : product.price <= 0 ? (
+                    <>
+                      <i className="bi bi-hourglass-split" aria-hidden />
+                      Awaiting pricing
                     </>
                   ) : addingId === product.id ? (
                     <>

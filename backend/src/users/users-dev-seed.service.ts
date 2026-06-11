@@ -48,6 +48,15 @@ export class UsersDevSeedService implements OnApplicationBootstrap {
         taxId: 'PM-0001',
         homeAddress: 'Istanbul, Besiktas',
       },
+      {
+        email:
+          process.env.DEMO_SALES_MANAGER_EMAIL ?? 'sm@electrostore.local',
+        password: process.env.DEMO_SALES_MANAGER_PASSWORD ?? 'Sales123!',
+        role: UserRole.SALES_MANAGER,
+        fullName: 'Demo Sales Manager',
+        taxId: 'SM-0001',
+        homeAddress: 'Istanbul, Kadikoy',
+      },
     ];
 
     for (const demoUser of demoUsers) {

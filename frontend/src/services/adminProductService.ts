@@ -11,11 +11,9 @@ export type AdminProductPayload = {
   description: string;
   category: string;
   imageUrl: string;
-  price: number;
   stockQuantity: number;
   warrantyStatus: string;
   distributorInfo: string;
-  popularity?: number;
 };
 
 async function getErrorMessage(res: Response, fallback: string): Promise<string> {

@@ -46,12 +46,6 @@ export class CreateProductDto {
   @MinLength(1)
   imageUrl!: string;
 
-  @ApiProperty({ example: 74999, minimum: 0.01 })
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0.01)
-  price!: number;
-
   @ApiProperty({ example: 12, minimum: 0 })
   @Type(() => Number)
   @IsInt()
@@ -68,13 +62,6 @@ export class CreateProductDto {
   @IsString()
   @MinLength(1)
   distributorInfo!: string;
-
-  @ApiPropertyOptional({ example: 50, minimum: 0 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  popularity?: number;
 }
 
 export class UpdateProductDto {
@@ -118,13 +105,6 @@ export class UpdateProductDto {
   @MinLength(1)
   imageUrl?: string;
 
-  @ApiPropertyOptional({ minimum: 0.01 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0.01)
-  price?: number;
-
   @ApiPropertyOptional({ minimum: 0 })
   @IsOptional()
   @Type(() => Number)
@@ -144,13 +124,6 @@ export class UpdateProductDto {
   @IsString()
   @MinLength(1)
   distributorInfo?: string;
-
-  @ApiPropertyOptional({ minimum: 0 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  popularity?: number;
 }
 
 export class UpdateProductStockDto {
