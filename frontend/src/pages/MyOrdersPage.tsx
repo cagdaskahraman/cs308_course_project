@@ -2,21 +2,24 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getMyOrders, type Order } from '../services/orderService';
+import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
+import { PageHeader } from '../components/PageHeader';
 import { formatPrice } from '../utils/formatPrice';
 import { isAuthFailure } from '../services/authService';
 
 const statusBadgeClass = (status: string): string => {
   switch (status) {
     case 'delivered':
-      return 'text-bg-success';
+      return 'status-badge status-badge--delivered';
     case 'in-transit':
-      return 'text-bg-info';
+      return 'status-badge status-badge--in-transit';
     case 'processing':
-      return 'text-bg-warning';
+      return 'status-badge status-badge--processing';
     case 'cancelled':
-      return 'text-bg-secondary';
+      return 'status-badge status-badge--cancelled';
     default:
-      return 'text-bg-light';
+      return 'status-badge';
   }
 };
 
@@ -75,14 +78,7 @@ export const MyOrdersPage = (): JSX.Element => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="text-center py-5 text-secondary" role="status">
-        <div className="spinner-border text-primary mb-3" aria-hidden />
-        <p className="fs-5 mb-0">Loading your orders…</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState label="Loading your orders…" />;
 
   if (error) {
     return (
@@ -95,11 +91,12 @@ export const MyOrdersPage = (): JSX.Element => {
 
   return (
     <>
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <h2 className="fw-bold mb-0 d-inline-flex align-items-center gap-2">
-          <i className="bi bi-receipt-cutoff text-primary" aria-hidden />
-          My orders
-        </h2>
+      <PageHeader
+        icon="bi-receipt-cutoff"
+        title="My orders"
+        subtitle="Track delivery progress, download invoices, and request returns."
+        badge={`${orders.length} order${orders.length === 1 ? '' : 's'}`}
+      >
         <button
           type="button"
           className="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2"
@@ -108,83 +105,40 @@ export const MyOrdersPage = (): JSX.Element => {
           <i className="bi bi-arrow-clockwise" aria-hidden />
           Refresh
         </button>
-      </div>
+      </PageHeader>
 
       {orders.length === 0 ? (
-        <div className="card border-0 shadow-sm">
-          <div className="card-body text-center py-5">
-            <i className="bi bi-inbox display-4 text-secondary mb-3 d-block" aria-hidden />
-            <p className="text-secondary mb-3">You have not placed any orders yet.</p>
-            <Link to="/" className="btn btn-primary d-inline-flex align-items-center gap-2">
-              <i className="bi bi-grid-1x2-fill" aria-hidden />
-              Browse catalog
-            </Link>
-          </div>
-        </div>
+        <EmptyState
+          icon="bi-inbox"
+          title="No orders yet"
+          description="Your purchase history will appear here after checkout."
+          actionLabel="Start shopping"
+          actionTo="/"
+        />
       ) : (
-        <div className="table-responsive card border-0 shadow-sm">
-          <table className="table table-hover align-middle mb-0">
-            <thead className="table-light">
-              <tr>
-                <th scope="col">
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <i className="bi bi-calendar3" aria-hidden />
-                    Date
-                  </span>
-                </th>
-                <th scope="col">
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <i className="bi bi-hash" aria-hidden />
-                    Order
-                  </span>
-                </th>
-                <th scope="col">
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <i className="bi bi-box-seam" aria-hidden />
-                    Items
-                  </span>
-                </th>
-                <th scope="col">
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <i className="bi bi-currency-exchange" aria-hidden />
-                    Total
-                  </span>
-                </th>
-                <th scope="col">
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <i className="bi bi-truck" aria-hidden />
-                    Status
-                  </span>
-                </th>
-                <th scope="col" className="text-end">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((o) => (
-                <tr key={o.id}>
-                  <td>{new Date(o.orderDate).toLocaleString()}</td>
-                  <td>
-                    <span className="font-monospace small text-break" style={{ fontSize: '0.8rem' }}>{o.id}</span>
-                  </td>
-                  <td>{o.items?.length ?? 0}</td>
-                  <td className="fw-semibold">{formatPrice(o.totalPrice)}</td>
-                  <td>
-                    <span className={`badge rounded-pill ${statusBadgeClass(o.status)}`}>
-                      {statusLabel(o.status)}
-                    </span>
-                  </td>
-                  <td className="text-end">
-                    <Link to={`/orders/${o.id}`} className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1">
-                      <i className="bi bi-eye" aria-hidden />
-                      View details
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="d-flex flex-column gap-2">
+          {orders.map((o) => (
+            <div key={o.id} className="order-card d-flex flex-wrap justify-content-between align-items-center gap-3">
+              <div>
+                <div className="text-secondary small mb-1">
+                  {new Date(o.orderDate).toLocaleString()}
+                </div>
+                <div className="fw-bold">{formatPrice(o.totalPrice)}</div>
+                <div className="text-secondary small">
+                  {o.items?.length ?? 0} item{(o.items?.length ?? 0) === 1 ? '' : 's'}
+                </div>
+              </div>
+              <div className="d-flex align-items-center gap-3">
+                <span className={statusBadgeClass(o.status)}>
+                  {statusLabel(o.status)}
+                </span>
+                <Link to={`/orders/${o.id}`} className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1">
+                  <i className="bi bi-eye" aria-hidden />
+                  View details
+                </Link>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </>

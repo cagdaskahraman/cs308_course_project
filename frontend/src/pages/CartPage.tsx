@@ -9,6 +9,9 @@ import {
 } from '../services/cartService';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
+import { PageHeader } from '../components/PageHeader';
 import { ProductPriceDisplay } from '../components/ProductPriceDisplay';
 import { formatPrice } from '../utils/formatPrice';
 
@@ -78,14 +81,7 @@ export const CartPage = (): JSX.Element => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="text-center py-5 text-secondary" role="status">
-        <div className="spinner-border text-primary mb-3" aria-hidden />
-        <p className="fs-5 mb-0">Loading cart…</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState label="Loading cart…" />;
   if (error) {
     return (
       <div className="alert alert-danger mt-4 d-flex align-items-center gap-2" role="alert">
@@ -97,15 +93,13 @@ export const CartPage = (): JSX.Element => {
 
   if (!cartData || cartData.cart.items.length === 0) {
     return (
-      <div className="text-center py-5">
-        <i className="bi bi-cart-x display-3 text-secondary mb-3 d-block" aria-hidden />
-        <h4 className="fw-semibold">Your cart is empty</h4>
-        <p className="text-secondary mb-4">Browse the catalog and add items to get started.</p>
-        <Link to="/" className="btn btn-primary btn-lg d-inline-flex align-items-center gap-2">
-          <i className="bi bi-grid-1x2-fill" aria-hidden />
-          Browse catalog
-        </Link>
-      </div>
+      <EmptyState
+        icon="bi-cart-x"
+        title="Your cart is empty"
+        description="Discover our latest electronics and add your favorites."
+        actionLabel="Browse catalog"
+        actionTo="/"
+      />
     );
   }
 
@@ -113,11 +107,13 @@ export const CartPage = (): JSX.Element => {
 
   return (
     <>
-      <h2 className="fw-bold mb-4 d-inline-flex align-items-center gap-2">
-        <i className="bi bi-cart3 text-primary" aria-hidden />
-        Shopping cart
-      </h2>
-      <div className="table-responsive card border-0 shadow-sm">
+      <PageHeader
+        icon="bi-cart3"
+        title="Shopping cart"
+        subtitle="Review your items before secure checkout."
+        badge={`${cart.items.length} item${cart.items.length === 1 ? '' : 's'}`}
+      />
+      <div className="table-responsive data-card card border-0">
         <table className="table align-middle mb-0">
           <thead className="table-light">
             <tr>
@@ -140,24 +136,22 @@ export const CartPage = (): JSX.Element => {
                   </Link>
                 </td>
                 <td>
-                  <div className="d-flex align-items-center gap-2">
+                  <div className="qty-control">
                     <button
                       type="button"
-                      className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center"
-                      style={{ width: 36 }}
+                      className="btn btn-sm btn-outline-secondary"
                       disabled={busyItemId === item.id || item.quantity <= 1}
                       onClick={() => void handleQtyChange(item.id, item.quantity - 1)}
                       aria-label="Decrease quantity"
                     >
                       <i className="bi bi-dash-lg" aria-hidden />
                     </button>
-                    <span className="fw-semibold" style={{ minWidth: 28, textAlign: 'center' }}>
+                    <span className="fw-bold px-1" style={{ minWidth: 24, textAlign: 'center' }}>
                       {item.quantity}
                     </span>
                     <button
                       type="button"
-                      className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center"
-                      style={{ width: 36 }}
+                      className="btn btn-sm btn-outline-secondary"
                       disabled={busyItemId === item.id}
                       onClick={() => void handleQtyChange(item.id, item.quantity + 1)}
                       aria-label="Increase quantity"
@@ -189,11 +183,11 @@ export const CartPage = (): JSX.Element => {
         </table>
       </div>
 
-      <div className="d-flex flex-wrap justify-content-between align-items-center mt-4 gap-3 border-top pt-4">
-        <h4 className="mb-0 d-inline-flex align-items-center gap-2">
-          <i className="bi bi-receipt text-primary" aria-hidden />
-          Total: {formatPrice(totalPrice)}
-        </h4>
+      <div className="cart-summary d-flex flex-wrap justify-content-between align-items-center mt-4 gap-3">
+        <div>
+          <div className="text-secondary small fw-semibold text-uppercase">Order total</div>
+          <h3 className="mb-0 fw-bold">{formatPrice(totalPrice)}</h3>
+        </div>
         <button
           type="button"
           className="btn btn-primary btn-lg d-inline-flex align-items-center gap-2"
