@@ -1,4 +1,6 @@
-# CS308 Course Project - Electronics Store
+# CS308 Course Project — ElectroStore
+
+Online electronics store for CS308. Customers browse a 40-item catalog, manage cart/wishlist, checkout, track orders, request returns, and leave reviews. Staff roles cover catalog management (product manager), pricing/sales/invoices/returns (sales manager).
 
 ## Team Members
 - Çağdaş Kahraman
@@ -8,87 +10,52 @@
 - Emir Kaan Yılmaz
 - Enes Ovalı
 
-## Project Description
-This project is an e-commerce platform for an electronics store. It includes customer and admin interfaces with role-based access.
-
 ## Tech Stack
-- Frontend: ReactJS + Bootstrap
-- Backend: Jest + Supertest
-- Database: PostgreSQL
-- Other Fundemental Tools: GitHub, GitHub Projects/Jira, Postman, Figma, JUnit + Mockito, React Testing Library, Docker
+- **Frontend:** React, TypeScript, Vite, Bootstrap, React Router
+- **Backend:** NestJS, TypeORM, JWT auth, Swagger
+- **Database:** PostgreSQL (Docker)
+- **Email:** Nodemailer (SMTP) for invoices, discounts, refund approvals
+- **Testing:** Jest (backend)
+- **Tools:** GitHub, Docker, Postman
 
 ## Project Structure
-- frontend/
-- backend/
-- docs/
-- assets/
+- `frontend/` — customer + admin UI
+- `backend/` — REST API
+- `docs/` — Scrum notes
+- `assets/` — product images
 
 ## Branch Strategy
-- main → stable
-- dev → development
-- feature/* → feature branches
+- `main` → stable
+- `dev2` / `dev3` / `dev4` → integration branches
+- `feature/*` → feature work
 
-## Setup Instructions
+## Setup
 
-For Windows quick setup, see `REQUIREMENTS.md` and run `start.bat`.
+Windows: see `REQUIREMENTS.md` and run `start.bat`.
 
-### Prerequisites
-- Node.js (v20+ recommended)
-- npm
-
-### 1) Clone and install
+**Prerequisites:** Node.js 20+, npm, Docker Desktop
 
 ```bash
-git clone -b dev https://github.com/cagdaskahraman/cs308_course_project.git
+git clone https://github.com/cagdaskahraman/cs308_course_project.git
 cd cs308_course_project
 ```
 
-Backend:
+Copy `backend/.env.example` → `backend/.env`, then install and run:
 
 ```bash
-cd backend
-npm install
+# backend
+cd backend && npm install && npm run start
+
+# frontend (separate terminal)
+cd frontend && npm install && npm run dev
 ```
 
-Frontend:
-
-```bash
-cd ../frontend
-npm install
-```
-
-### 2) Run the app on localhost
-
-Open two terminals from project root.
-
-Terminal 1 (backend):
-
-```bash
-cd backend
-npm run start
-```
-
-Terminal 2 (frontend):
-
-```bash
-cd frontend
-npm run dev
-```
-
-### 3) Access URLs
+**URLs**
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:3000`
-- Products API: `http://localhost:3000/products`
-- Health endpoint: `http://localhost:3000/hello`
+- API docs: `http://localhost:3000/api`
 
-### Current App Usage
-- Frontend has a single product listing page.
-- It fetches products from the backend `/products` endpoint.
-- Product images are served from `assets/products` through backend static hosting.
+On first start the backend seeds a 40-product catalog and a demo scenario (Products A–C in catalog; D added by PM; E–H tied to sample customer orders).
 
 ## Scrum
-Meeting notes and backlog are stored under `docs/`.
-
-## Contributors
-All team members contribute via pull requests.
-
+Meeting notes and backlog: `docs/`.
