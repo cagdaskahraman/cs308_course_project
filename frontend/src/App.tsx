@@ -1,6 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
-import { SiteFooter } from './components/SiteFooter';
 import { CatalogPage } from './pages/CatalogPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { CartPage } from './pages/CartPage';
@@ -10,10 +9,10 @@ import { OrderTrackingPage } from './pages/OrderTrackingPage';
 import { MyOrdersPage } from './pages/MyOrdersPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { AdminReviewsPage } from './pages/AdminReviewsPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminOrdersPage } from './pages/AdminOrdersPage';
 import { AdminProductsPage } from './pages/AdminProductsPage';
 import { AdminPricingPage } from './pages/AdminPricingPage';
-import { AdminReturnsPage } from './pages/AdminReturnsPage';
 import { ProfilePage } from './pages/ProfilePage';
 
 export const App = (): JSX.Element => (
@@ -21,8 +20,8 @@ export const App = (): JSX.Element => (
     <div className="bg-orb bg-orb-one" aria-hidden />
     <div className="bg-orb bg-orb-two" aria-hidden />
     <Navbar />
-    <main className="container app-main py-4 py-lg-5 page-enter">
-      <section className="content-shell p-3 p-lg-5">
+    <main className="container py-4 py-lg-5 page-enter">
+      <section className="content-shell p-3 p-lg-4">
         <Routes>
           <Route path="/" element={<CatalogPage />} />
           <Route path="/products/:id" element={<ProductDetailPage />} />
@@ -34,13 +33,12 @@ export const App = (): JSX.Element => (
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/admin/reviews" element={<AdminReviewsPage />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/pricing" element={<AdminPricingPage />} />
-          <Route path="/admin/returns" element={<AdminReturnsPage />} />
         </Routes>
       </section>
     </main>
-    <SiteFooter />
   </div>
 );
