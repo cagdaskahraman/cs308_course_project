@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { AdminModerationNav } from '../components/AdminModerationNav';
+import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
+import { PageHeader } from '../components/PageHeader';
+import { StarRating } from '../components/StarRating';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { isAuthFailure } from '../services/authService';
@@ -21,7 +25,7 @@ export const AdminReviewsPage = (): JSX.Element => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const { showToast } = useToast();
 
-  const canModerate = user?.role === 'product_manager' || user?.role === 'admin';
+  const canModerate = user?.role === 'product_manager';
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -103,14 +107,7 @@ export const AdminReviewsPage = (): JSX.Element => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="text-center py-5 text-secondary" role="status">
-        <div className="spinner-border text-primary mb-3" aria-hidden />
-        <p className="fs-5 mb-0">Loading pending reviews…</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState label="Loading pending reviews…" />;
   if (error) {
     return (
       <div className="alert alert-danger mt-4 d-flex align-items-center gap-2" role="alert">
@@ -123,36 +120,38 @@ export const AdminReviewsPage = (): JSX.Element => {
   return (
     <>
       <AdminModerationNav active="reviews" />
-      <h2 className="fw-bold mb-4 d-inline-flex align-items-center gap-2">
-        <i className="bi bi-shield-check text-primary" aria-hidden />
-        Review moderation
-      </h2>
+      <PageHeader
+        icon="bi-shield-check"
+        title="Customer reviews"
+        subtitle="Review written comments before they are published on product pages."
+        badge={`${reviews.length} pending`}
+      />
       {reviews.length === 0 ? (
-        <div className="d-flex align-items-center gap-2 text-secondary">
-          <i className="bi bi-check2-all fs-4" aria-hidden />
-          <span>No pending reviews at the moment.</span>
-        </div>
+        <EmptyState
+          icon="bi-check2-all"
+          title="All caught up"
+          description="No pending reviews at the moment."
+        />
       ) : (
-        <div className="list-group">
+        <div>
           {reviews.map((r) => (
-            <div key={r.id} className="list-group-item">
+            <div key={r.id} className="review-card">
               <div className="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                  {r.productName && (
-                    <span className="badge text-bg-secondary me-2">{r.productName}</span>
-                  )}
-                  {r.productId ? (
-                    <span className="badge text-bg-light me-2">#{r.productId.slice(0, 8)}</span>
+                <div className="d-flex flex-wrap align-items-center gap-2">
+                  {r.productName ? (
+                    <span className="badge text-bg-secondary">{r.productName}</span>
                   ) : null}
-                  <span style={{ color: '#f5a623' }}>
-                    {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
-                  </span>
+                  {r.productId ? (
+                    <span className="badge text-bg-light">#{r.productId.slice(0, 8)}</span>
+                  ) : null}
+                  <StarRating value={r.rating} />
                 </div>
                 <small className="text-muted">
                   {new Date(r.createdAt).toLocaleDateString('tr-TR')}
                 </small>
               </div>
               <p className="mb-1"><strong>Pending comment:</strong> {r.comment}</p>
+              <p className="mb-2 text-muted small">Approved rating: {r.rating}/5</p>
               {r.existingComment ? (
                 <p className="mb-2 text-muted small">
                   Current visible comment: {r.existingComment}

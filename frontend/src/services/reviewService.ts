@@ -23,6 +23,7 @@ export type Review = {
   userId: string;
   rating: number;
   comment: string | null;
+  pendingComment?: string | null;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 };

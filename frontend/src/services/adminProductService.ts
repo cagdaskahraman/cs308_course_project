@@ -25,7 +25,7 @@ async function getErrorMessage(res: Response, fallback: string): Promise<string>
     // no JSON error body
   }
   if (res.status === 401) return 'Session expired. Please log in again.';
-  if (res.status === 403) return 'Product manager or admin access required.';
+  if (res.status === 403) return 'Product manager access required.';
   if (res.status === 409) return 'This action conflicts with existing catalog data.';
   return `${fallback} (${res.status})`;
 }

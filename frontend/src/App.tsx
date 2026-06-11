@@ -9,7 +9,6 @@ import { OrderTrackingPage } from './pages/OrderTrackingPage';
 import { MyOrdersPage } from './pages/MyOrdersPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { AdminReviewsPage } from './pages/AdminReviewsPage';
-import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminOrdersPage } from './pages/AdminOrdersPage';
 import { AdminProductsPage } from './pages/AdminProductsPage';
 import { AdminPricingPage } from './pages/AdminPricingPage';
@@ -34,7 +33,6 @@ export const App = (): JSX.Element => (
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/admin/reviews" element={<AdminReviewsPage />} />
-          <Route path="/admin/users" element={<AdminUsersPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/pricing" element={<AdminPricingPage />} />

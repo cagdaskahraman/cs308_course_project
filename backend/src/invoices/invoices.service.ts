@@ -122,9 +122,7 @@ export class InvoicesService {
       throw new NotFoundException(`Invoice not found for order ${orderId}`);
     }
     const isStaff =
-      actor.role === 'product_manager' ||
-      actor.role === 'sales_manager' ||
-      actor.role === 'admin';
+      actor.role === 'product_manager' || actor.role === 'sales_manager';
     if (!isStaff && invoice.order.userId !== actor.sub) {
       throw new ForbiddenException('You are not allowed to access this invoice');
     }
@@ -142,9 +140,7 @@ export class InvoicesService {
       throw new NotFoundException(`Invoice not found: ${invoiceId}`);
     }
     const isStaff =
-      actor.role === 'product_manager' ||
-      actor.role === 'sales_manager' ||
-      actor.role === 'admin';
+      actor.role === 'product_manager' || actor.role === 'sales_manager';
     if (!isStaff && invoice.order.userId !== actor.sub) {
       throw new ForbiddenException('You are not allowed to access this invoice');
     }

@@ -94,10 +94,13 @@ export class ReviewsService {
       );
     }
     if (review.status !== ReviewStatus.APPROVED) {
-      throw new ConflictException('Your rating is not in approved state');
+      throw new ConflictException(
+        'Your rating must be approved before adding a comment, or a comment is already pending',
+      );
     }
     const normalized = dto.comment.trim();
     review.pendingComment = normalized;
+    review.status = ReviewStatus.PENDING;
     return this.reviewsRepository.save(review);
   }
 
@@ -133,30 +136,25 @@ export class ReviewsService {
     if (!review) {
       throw new NotFoundException(`Review not found: ${id}`);
     }
-    if (review.status !== ReviewStatus.PENDING) {
-      if (!review.pendingComment) {
-        throw new ConflictException(
-          `Review ${id} has no pending comment to approve`,
-        );
-      }
+    if (!review.pendingComment) {
+      throw new ConflictException(`Review ${id} has no pending comment to approve`);
     }
     review.comment = review.pendingComment;
     review.pendingComment = null;
     review.status = ReviewStatus.APPROVED;
-    const saved = await this.reviewsRepository.save(review);
-    await this.refreshProductPopularity(review.product.id);
-    return saved;
+    return this.reviewsRepository.save(review);
   }
 
   async reject(id: string): Promise<Review> {
-    const review = await this.reviewsRepository.findOne({ where: { id } });
+    const review = await this.reviewsRepository.findOne({
+      where: { id },
+      relations: { product: true },
+    });
     if (!review) {
       throw new NotFoundException(`Review not found: ${id}`);
     }
     if (!review.pendingComment) {
-      throw new ConflictException(
-        `Review ${id} has no pending comment to reject`,
-      );
+      throw new ConflictException(`Review ${id} has no pending comment to reject`);
     }
     review.pendingComment = null;
     review.status = ReviewStatus.APPROVED;
@@ -178,10 +176,7 @@ export class ReviewsService {
       .andWhere('review.status = :status', { status: ReviewStatus.APPROVED })
       .getRawOne<{ avg: string; count: string }>();
 
-    const average = Number(row?.avg ?? 0);
     const count = Number(row?.count ?? 0);
-    const popularity = count;
-
-    await this.productsRepository.update({ id: productId }, { popularity });
+    await this.productsRepository.update({ id: productId }, { popularity: count });
   }
 }

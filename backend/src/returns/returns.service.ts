@@ -120,16 +120,23 @@ export class ReturnsService {
 
   async approve(returnId: string): Promise<ReturnRequestDto> {
     return this.dataSource.transaction(async (manager) => {
+      const locked = await manager.findOne(ReturnRequest, {
+        where: { id: returnId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!locked) {
+        throw new NotFoundException(`Return request not found: ${returnId}`);
+      }
+      if (locked.status !== ReturnStatus.Pending) {
+        throw new BadRequestException('Only pending return requests can be approved');
+      }
+
       const request = await manager.findOne(ReturnRequest, {
         where: { id: returnId },
         relations: { order: true, orderItem: { product: true } },
-        lock: { mode: 'pessimistic_write' },
       });
       if (!request) {
         throw new NotFoundException(`Return request not found: ${returnId}`);
-      }
-      if (request.status !== ReturnStatus.Pending) {
-        throw new BadRequestException('Only pending return requests can be approved');
       }
 
       const product = await manager.findOne(Product, {
