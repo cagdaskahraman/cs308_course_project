@@ -9,8 +9,9 @@ import {
   submitReviewComment,
   type Review,
 } from '../services/reviewService';
+import { addToWishlist, listWishlist, removeFromWishlist } from '../services/wishlistService';
 import { useToast } from '../context/ToastContext';
-import { formatPrice } from '../utils/formatPrice';
+import { ProductDiscountBadge, ProductPriceDisplay } from '../components/ProductPriceDisplay';
 import { displayProductMeta } from '../utils/displayProductMeta';
 import type { Product } from '../types/product';
 
@@ -59,6 +60,7 @@ export const ProductDetailPage = (): JSX.Element => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [myReview, setMyReview] = useState<Review | null>(null);
+  const [wishlisted, setWishlisted] = useState(false);
   const { showToast } = useToast();
 
   const token = localStorage.getItem('token');
@@ -104,8 +106,18 @@ export const ProductDetailPage = (): JSX.Element => {
       .catch(() => setMyReview(null));
   }, [id, token]);
 
+  useEffect(() => {
+    if (!id || !token) {
+      setWishlisted(false);
+      return;
+    }
+    void listWishlist()
+      .then((items) => setWishlisted(items.some((item) => item.id === id)))
+      .catch(() => setWishlisted(false));
+  }, [id, token]);
+
   const handleAdd = async () => {
-    if (!product || product.stockQuantity <= 0) return;
+    if (!product || product.stockQuantity <= 0 || product.price <= 0) return;
     setAdding(true);
     try {
       const cartId = await getOrCreateCartId();
@@ -200,12 +212,15 @@ export const ProductDetailPage = (): JSX.Element => {
     <>
       <div className="row g-4">
         <div className="col-md-6">
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="img-fluid rounded shadow-sm"
-            style={{ maxHeight: 480, objectFit: 'cover', width: '100%' }}
-          />
+          <div className="product-image-wrap rounded-4 overflow-hidden shadow-sm">
+            <ProductDiscountBadge product={product} />
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              className="img-fluid w-100 product-image"
+              style={{ maxHeight: 480, objectFit: 'cover' }}
+            />
+          </div>
         </div>
         <div className="col-md-6">
           <span className="badge text-bg-dark mb-2 d-inline-flex align-items-center gap-1">
@@ -254,10 +269,9 @@ export const ProductDetailPage = (): JSX.Element => {
               </dl>
             </div>
           </div>
-          <h3 className="text-primary fw-bold mt-3 d-inline-flex align-items-center gap-2">
-            <i className="bi bi-currency-exchange" aria-hidden />
-            {formatPrice(product.price)}
-          </h3>
+          <div className="product-price-hero">
+            <ProductPriceDisplay product={product} size="lg" showSavings />
+          </div>
           <div className="d-flex justify-content-end mt-2">
             <p
               className={`mb-0 d-inline-flex align-items-center gap-2 fw-medium ${product.stockQuantity > 0 ? 'text-success' : 'text-danger'}`}
@@ -270,7 +284,7 @@ export const ProductDetailPage = (): JSX.Element => {
             <button
               type="button"
               className="btn btn-primary d-inline-flex align-items-center gap-2"
-              disabled={product.stockQuantity <= 0 || adding}
+              disabled={product.stockQuantity <= 0 || product.price <= 0 || adding}
               onClick={() => void handleAdd()}
             >
               {adding ? (
@@ -290,6 +304,24 @@ export const ProductDetailPage = (): JSX.Element => {
                 </>
               )}
             </button>
+            {token ? (
+              <button
+                type="button"
+                className="btn btn-outline-primary d-inline-flex align-items-center gap-2"
+                onClick={() => {
+                  if (!product) return;
+                  void (wishlisted ? removeFromWishlist(product.id) : addToWishlist(product.id))
+                    .then((items) => {
+                      setWishlisted(items.some((item) => item.id === product.id));
+                      showToast(wishlisted ? 'Removed from wishlist.' : 'Added to wishlist.', 'success');
+                    })
+                    .catch((e) => showToast(e instanceof Error ? e.message : 'Wishlist update failed', 'danger'));
+                }}
+              >
+                <i className={`bi ${wishlisted ? 'bi-heart-fill' : 'bi-heart'}`} aria-hidden />
+                {wishlisted ? 'In wishlist' : 'Add to wishlist'}
+              </button>
+            ) : null}
             <Link to="/" className="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
               <i className="bi bi-arrow-left" aria-hidden />
               Back to catalog

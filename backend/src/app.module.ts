@@ -7,9 +7,12 @@ import { getTypeOrmModuleOptions } from './config/database.config';
 import { InvoicesModule } from './invoices/invoices.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
+import { PricingModule } from './pricing/pricing.module';
 import { ProductsModule } from './products/products.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { SalesModule } from './sales/sales.module';
 import { UsersModule } from './users/users.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -22,6 +25,9 @@ import { UsersModule } from './users/users.module';
     ReviewsModule,
     PaymentsModule,
     InvoicesModule,
+    PricingModule,
+    SalesModule,
+    WishlistModule,
   ],
 })
 export class AppModule {}

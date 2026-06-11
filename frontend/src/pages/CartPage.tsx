@@ -9,6 +9,7 @@ import {
 } from '../services/cartService';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { ProductPriceDisplay } from '../components/ProductPriceDisplay';
 import { formatPrice } from '../utils/formatPrice';
 
 export const CartPage = (): JSX.Element => {
@@ -165,7 +166,9 @@ export const CartPage = (): JSX.Element => {
                     </button>
                   </div>
                 </td>
-                <td>{formatPrice(item.product.price)}</td>
+                <td>
+                  <ProductPriceDisplay product={item.product} size="sm" layout="inline" />
+                </td>
                 <td className="fw-semibold">{formatPrice(item.quantity * item.product.price)}</td>
                 <td>
                   <button

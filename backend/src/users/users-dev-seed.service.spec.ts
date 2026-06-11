@@ -24,6 +24,8 @@ describe('UsersDevSeedService', () => {
       DEMO_ADMIN_PASSWORD: 'Admin123!',
       DEMO_PRODUCT_MANAGER_EMAIL: 'pm@test.local',
       DEMO_PRODUCT_MANAGER_PASSWORD: 'Manager123!',
+      DEMO_SALES_MANAGER_EMAIL: 'sm@test.local',
+      DEMO_SALES_MANAGER_PASSWORD: 'Sales123!',
     };
 
     usersRepository = {
@@ -56,11 +58,15 @@ describe('UsersDevSeedService', () => {
 
     await service.onApplicationBootstrap();
 
-    expect(usersRepository.save).toHaveBeenCalledTimes(2);
-    const firstRole = usersRepository.save.mock.calls[0][0].role as UserRole;
-    const secondRole = usersRepository.save.mock.calls[1][0].role as UserRole;
-    expect(firstRole).toBe(UserRole.ADMIN);
-    expect(secondRole).toBe(UserRole.PRODUCT_MANAGER);
+    expect(usersRepository.save).toHaveBeenCalledTimes(3);
+    const roles = usersRepository.save.mock.calls.map(
+      (call) => call[0].role as UserRole,
+    );
+    expect(roles).toEqual([
+      UserRole.ADMIN,
+      UserRole.PRODUCT_MANAGER,
+      UserRole.SALES_MANAGER,
+    ]);
   });
 
   it('updates role when demo user exists with wrong role', async () => {
@@ -74,6 +80,11 @@ describe('UsersDevSeedService', () => {
         id: 'user-2',
         email: 'pm@test.local',
         role: UserRole.PRODUCT_MANAGER,
+      })
+      .mockResolvedValueOnce({
+        id: 'user-3',
+        email: 'sm@test.local',
+        role: UserRole.SALES_MANAGER,
       });
 
     await service.onApplicationBootstrap();

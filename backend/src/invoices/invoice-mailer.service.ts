@@ -139,4 +139,48 @@ export class InvoiceMailerService {
   getDispatchForInvoice(invoiceNumber: string): InvoiceMailPayload | null {
     return this.dispatchesByInvoiceNumber.get(invoiceNumber) ?? null;
   }
+
+  async sendDiscountAlert(input: {
+    to: string;
+    productName: string;
+    discountRate: number;
+    newPrice: number;
+  }): Promise<void> {
+    const payload: InvoiceMailPayload = {
+      to: input.to,
+      subject: `Price drop: ${input.productName}`,
+      body:
+        `Good news!\n\n` +
+        `${input.productName} is now ${input.discountRate}% off.\n` +
+        `New price: ${input.newPrice.toFixed(2)}.\n\n` +
+        `Visit ElectroStore to purchase while the offer lasts.`,
+      attachmentName: '',
+      attachmentSize: 0,
+    };
+
+    if (this.transporter && this.smtpConfigured) {
+      try {
+        if (!this.transportVerified) {
+          await this.transporter.verify();
+          this.transportVerified = true;
+        }
+        const info = await this.transporter.sendMail({
+          from: this.senderAddress,
+          to: payload.to,
+          subject: payload.subject,
+          text: payload.body,
+        });
+        payload.messageId = info.messageId;
+      } catch (error: unknown) {
+        this.logger.warn(
+          `[InvoiceMailer] discount alert failed: ${InvoiceMailerService.formatSmtpError(error)}`,
+        );
+      }
+    } else {
+      this.logger.log(
+        `[InvoiceMailer] stub discount alert to=${payload.to} product="${input.productName}" rate=${input.discountRate}%`,
+      );
+    }
+    this.lastDispatch = payload;
+  }
 }

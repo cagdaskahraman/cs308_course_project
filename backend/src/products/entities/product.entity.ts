@@ -16,6 +16,21 @@ export class Product {
   @Column({ type: 'decimal', transformer: decimalNumberTransformer })
   price!: number;
 
+  @Column({
+    name: 'list_price',
+    type: 'decimal',
+    transformer: decimalNumberTransformer,
+  })
+  listPrice!: number;
+
+  @Column({
+    name: 'discount_rate',
+    type: 'decimal',
+    default: 0,
+    transformer: decimalNumberTransformer,
+  })
+  discountRate!: number;
+
   @Column({ name: 'stock_quantity', type: 'int' })
   stockQuantity!: number;
 

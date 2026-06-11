@@ -32,7 +32,7 @@ import { ListProductReviewsQueryDto } from './dto/list-reviews-query.dto';
 import { UpdateReviewCommentDto } from './dto/update-review-comment.dto';
 import { ReviewStatus } from './entities/review-status.enum';
 import { Review } from './entities/review.entity';
-import { ProductManagerGuard } from './guards/product-manager.guard';
+import { ProductManagerRoleGuard } from '../common/auth/product-manager-role.guard';
 import { ReviewsService } from './reviews.service';
 
 @ApiTags('reviews')
@@ -76,7 +76,7 @@ export class ReviewsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, ProductManagerGuard)
+  @UseGuards(JwtAuthGuard, ProductManagerRoleGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'List reviews for moderation',
@@ -94,7 +94,7 @@ export class ReviewsController {
   }
 
   @Patch(':id/approve')
-  @UseGuards(JwtAuthGuard, ProductManagerGuard)
+  @UseGuards(JwtAuthGuard, ProductManagerRoleGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Approve a pending review' })
   @ApiParam({ name: 'id', format: 'uuid' })
@@ -110,7 +110,7 @@ export class ReviewsController {
   }
 
   @Patch(':id/reject')
-  @UseGuards(JwtAuthGuard, ProductManagerGuard)
+  @UseGuards(JwtAuthGuard, ProductManagerRoleGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reject a pending review' })
   @ApiParam({ name: 'id', format: 'uuid' })

@@ -26,7 +26,7 @@ import {
 } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
-import { StaffRoleGuard } from '../common/auth/staff-role.guard';
+import { ProductManagerRoleGuard } from '../common/auth/product-manager-role.guard';
 import { CreateCategoryDto, RenameCategoryDto } from './dto/admin-category.dto';
 import {
   AdminProductsQueryDto,
@@ -40,7 +40,7 @@ import { ProductsService } from './products.service';
 
 @ApiTags('admin products')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, StaffRoleGuard)
+@UseGuards(JwtAuthGuard, ProductManagerRoleGuard)
 @Controller('admin')
 export class AdminProductsController {
   constructor(private readonly productsService: ProductsService) {}
@@ -63,7 +63,7 @@ export class AdminProductsController {
   }
 
   @Patch('products/:id')
-  @ApiOperation({ summary: 'Update product metadata, price, and stock' })
+  @ApiOperation({ summary: 'Update product metadata and stock (pricing is sales manager only)' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: Product })
   @ApiNotFoundResponse({ description: 'Product does not exist.' })

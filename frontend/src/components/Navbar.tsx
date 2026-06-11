@@ -8,6 +8,8 @@ export const Navbar = (): JSX.Element => {
   const { user, isAuthenticated, signOut } = useAuth();
   const canModerateReviews =
     user?.role === 'product_manager' || user?.role === 'admin';
+  const canManageSales =
+    user?.role === 'sales_manager' || user?.role === 'admin';
   const isAdmin = user?.role === 'admin';
 
   const navLink = (to: string, label: string, iconClass: string) => (
@@ -64,6 +66,7 @@ export const Navbar = (): JSX.Element => {
             )}
             {canModerateReviews && navLink('/admin/orders', 'Deliveries', 'bi-truck')}
             {canModerateReviews && navLink('/admin/products', 'Products', 'bi-box-seam')}
+            {canManageSales && navLink('/admin/pricing', 'Pricing', 'bi-currency-exchange')}
             {canModerateReviews && navLink('/admin/reviews', 'Moderation', 'bi-shield-check')}
             {isAdmin && navLink('/admin/users', 'Users', 'bi-people-fill')}
             {isAuthenticated ? (

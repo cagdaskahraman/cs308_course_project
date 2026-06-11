@@ -7,7 +7,7 @@ import { getSavedCartId, mergeGuestCartWithUser } from '../services/cartService'
 
 const resolveSafeNextPath = (
   rawNext: string | null,
-  role: 'customer' | 'product_manager' | 'admin',
+  role: 'customer' | 'product_manager' | 'sales_manager' | 'admin',
 ): string => {
   if (!rawNext || !rawNext.startsWith('/')) return '/';
 
@@ -18,7 +18,15 @@ const resolveSafeNextPath = (
     return role === 'admin' ? rawNext : '/';
   }
 
+  if (rawNext.startsWith('/admin/pricing')) {
+    return role === 'sales_manager' || role === 'admin' ? rawNext : '/';
+  }
+
   if (rawNext.startsWith('/admin/orders') || rawNext.startsWith('/admin/reviews')) {
+    return role === 'admin' || role === 'product_manager' ? rawNext : '/';
+  }
+
+  if (rawNext.startsWith('/admin/products')) {
     return role === 'admin' || role === 'product_manager' ? rawNext : '/';
   }
 

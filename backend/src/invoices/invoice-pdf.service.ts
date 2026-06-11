@@ -22,6 +22,9 @@ export class InvoicePdfService {
     lines.push('--------');
     lines.push(`Name      : ${invoice.billingName}`);
     lines.push(`Email     : ${invoice.billingEmail}`);
+    if (invoice.taxId?.trim()) {
+      lines.push(`Tax ID    : ${invoice.taxId.trim()}`);
+    }
     lines.push(`Address   : ${invoice.billingAddress}`);
     lines.push(`Card      : **** **** **** ${invoice.cardLast4}`);
     lines.push('');

@@ -152,11 +152,9 @@ describe('ProductsService', () => {
       description: ' Compact camera ',
       category: ' Camera ',
       imageUrl: ' https://example.com/camera.jpg ',
-      price: 100,
       stockQuantity: 5,
       warrantyStatus: ' 2 years ',
       distributorInfo: ' Demo distributor ',
-      popularity: 10,
     });
 
     expect(categoryRepository.save).toHaveBeenCalledWith(
@@ -168,6 +166,9 @@ describe('ProductsService', () => {
         model: 'X100',
         serialNumber: 'SN-CAM-1',
         category: 'Camera',
+        listPrice: 0,
+        discountRate: 0,
+        price: 0,
       }),
     );
   });
@@ -185,7 +186,6 @@ describe('ProductsService', () => {
         description: 'Compact camera',
         category: 'Camera',
         imageUrl: 'https://example.com/camera.jpg',
-        price: 100,
         stockQuantity: 5,
         warrantyStatus: '2 years',
         distributorInfo: 'Demo distributor',

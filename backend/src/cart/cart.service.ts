@@ -27,6 +27,14 @@ export class CartService {
     product: Product,
     requestedQuantity: number,
   ): void {
+    if (product.price <= 0) {
+      throw new BadRequestException({
+        error: 'PRODUCT_NOT_PRICED',
+        productId: product.id,
+        productName: product.name,
+        message: `"${product.name}" is not available for purchase yet.`,
+      });
+    }
     if (product.stockQuantity < requestedQuantity) {
       throw new BadRequestException({
         error: 'INSUFFICIENT_STOCK',

@@ -13,12 +13,14 @@ import {
 const roleLabel: Record<AdminDirectoryUser['role'], string> = {
   customer: 'Customer',
   product_manager: 'Product manager',
+  sales_manager: 'Sales manager',
   admin: 'Administrator',
 };
 
 const roleBadgeClass: Record<AdminDirectoryUser['role'], string> = {
   customer: 'text-bg-secondary',
   product_manager: 'text-bg-info',
+  sales_manager: 'text-bg-warning',
   admin: 'text-bg-danger',
 };
 
@@ -121,7 +123,7 @@ export const AdminUsersPage = (): JSX.Element => {
         User management
       </h2>
       <p className="text-secondary mb-4">
-        View every account, assign product manager or administrator, or return staff to the customer role.
+        View every account and assign customer, product manager, sales manager, or administrator roles.
         The last administrator in the system cannot be demoted.
       </p>
       {error ? (
@@ -175,6 +177,16 @@ export const AdminUsersPage = (): JSX.Element => {
                     >
                       <i className="bi bi-kanban" aria-hidden />
                       <span className="d-none d-md-inline ms-1">PM</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      disabled={busyId === r.id || r.role === 'sales_manager'}
+                      onClick={() => void applyRole(r, 'sales_manager')}
+                      title="Sales manager"
+                    >
+                      <i className="bi bi-currency-exchange" aria-hidden />
+                      <span className="d-none d-md-inline ms-1">SM</span>
                     </button>
                     <button
                       type="button"
