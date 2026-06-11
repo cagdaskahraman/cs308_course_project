@@ -11,36 +11,11 @@ import {
 } from '../services/reviewService';
 import { addToWishlist, listWishlist, removeFromWishlist } from '../services/wishlistService';
 import { useToast } from '../context/ToastContext';
+import { LoadingState } from '../components/LoadingState';
 import { ProductDiscountBadge, ProductPriceDisplay } from '../components/ProductPriceDisplay';
+import { StarRating } from '../components/StarRating';
 import { displayProductMeta } from '../utils/displayProductMeta';
 import type { Product } from '../types/product';
-
-function StarRating({ value }: { value: number }) {
-  return (
-    <span>
-      {[1, 2, 3, 4, 5].map((s) => (
-        <span key={s} style={{ color: s <= value ? '#f5a623' : '#ccc', fontSize: '1.1rem' }}>★</span>
-      ))}
-    </span>
-  );
-}
-
-function StarInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  return (
-    <span>
-      {[1, 2, 3, 4, 5].map((s) => (
-        <span
-          key={s}
-          role="button"
-          tabIndex={0}
-          style={{ color: s <= value ? '#f5a623' : '#ccc', fontSize: '1.4rem', cursor: 'pointer' }}
-          onClick={() => onChange(s)}
-          onKeyDown={(e) => e.key === 'Enter' && onChange(s)}
-        >★</span>
-      ))}
-    </span>
-  );
-}
 
 export const ProductDetailPage = (): JSX.Element => {
   const { id } = useParams<{ id: string }>();
@@ -168,12 +143,12 @@ export const ProductDetailPage = (): JSX.Element => {
     setSubmitSuccess(null);
     try {
       await submitReviewComment(id, comment.trim(), token);
-      setSubmitSuccess('Comment submitted for moderation.');
+      setSubmitSuccess('Comment submitted for review.');
       setComment('');
       await loadReviews();
       const mine = await getMyReviewForProduct(id, token);
       setMyReview(mine);
-      showToast('Comment submitted for approval.', 'info');
+      showToast('Comment submitted for review.', 'info');
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : 'Could not submit comment.',
@@ -183,14 +158,7 @@ export const ProductDetailPage = (): JSX.Element => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="text-center py-5 text-secondary" role="status">
-        <div className="spinner-border text-primary mb-3" aria-hidden />
-        <p className="fs-5 mb-0">Loading product…</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState label="Loading product…" />;
   if (error) {
     return (
       <div className="alert alert-danger mt-4 d-flex align-items-center gap-2" role="alert">
@@ -211,37 +179,31 @@ export const ProductDetailPage = (): JSX.Element => {
   return (
     <>
       <div className="row g-4">
-        <div className="col-md-6">
-          <div className="product-image-wrap rounded-4 overflow-hidden shadow-sm">
+        <div className="col-lg-6">
+          <div className="product-detail-gallery product-image-wrap">
             <ProductDiscountBadge product={product} />
             <img
               src={product.imageUrl}
               alt={product.name}
               className="img-fluid w-100 product-image"
-              style={{ maxHeight: 480, objectFit: 'cover' }}
             />
           </div>
         </div>
-        <div className="col-md-6">
-          <span className="badge text-bg-dark mb-2 d-inline-flex align-items-center gap-1">
+        <div className="col-lg-6">
+          <div className="product-detail-panel">
+          <span className="category-pill mb-3">
             <i className="bi bi-tag-fill" aria-hidden />
             {product.category}
           </span>
-          <h2 className="fw-bold">{product.name}</h2>
-          <p className="text-secondary">{product.description}</p>
-          <div className="card border-0 bg-light mt-3">
-            <div className="card-body py-3">
+          <h1 className="fw-bold mb-2" style={{ letterSpacing: '-0.03em' }}>{product.name}</h1>
+          <p className="text-secondary mb-4" style={{ lineHeight: 1.65 }}>{product.description}</p>
+          <div className="product-specs mt-3">
               <h6 className="text-muted text-uppercase small mb-3 d-inline-flex align-items-center gap-2">
                 <i className="bi bi-info-circle" aria-hidden />
-                Details
+                Specifications
               </h6>
               <dl className="row mb-0 small">
-                <dt className="col-sm-4 text-secondary d-inline-flex align-items-center gap-1">
-                  <i className="bi bi-hash" aria-hidden />
-                  Product ID
-                </dt>
-                <dd className="col-sm-8 mb-2">{product.id}</dd>
-                <dt className="col-sm-4 text-secondary d-inline-flex align-items-center gap-1">
+                <dt className="col-sm-4 d-inline-flex align-items-center gap-1">
                   <i className="bi bi-cpu" aria-hidden />
                   Model
                 </dt>
@@ -267,7 +229,6 @@ export const ProductDetailPage = (): JSX.Element => {
                 </dt>
                 <dd className="col-sm-8 mb-0">{displayProductMeta(product.distributorInfo)}</dd>
               </dl>
-            </div>
           </div>
           <div className="product-price-hero">
             <ProductPriceDisplay product={product} size="lg" showSavings />
@@ -327,15 +288,16 @@ export const ProductDetailPage = (): JSX.Element => {
               Back to catalog
             </Link>
           </div>
+          </div>
         </div>
       </div>
 
-      <hr className="my-4" />
+      <section className="reviews-panel">
       <h4 className="mb-1 d-inline-flex align-items-center gap-2">
         <i className="bi bi-chat-square-text text-primary" aria-hidden />
-        Reviews
+        Customer reviews
       </h4>
-      <p className="text-muted small mb-3">Only approved reviews are listed below.</p>
+      <p className="text-muted small mb-3">Verified customer ratings and approved comments are shown below.</p>
 
       {reviewsLoading ? (
         <div className="d-flex align-items-center gap-2 text-secondary mb-4" role="status" aria-live="polite">
@@ -357,14 +319,14 @@ export const ProductDetailPage = (): JSX.Element => {
       ) : reviews.length === 0 ? (
         <p className="text-secondary mb-4">No approved reviews yet.</p>
       ) : (
-        <div className="list-group mb-4">
+        <div className="mb-4">
           {reviews.map((r) => (
-            <div key={r.id} className="list-group-item">
-              <div className="d-flex justify-content-between align-items-center mb-1">
-                <StarRating value={r.rating} />
+            <div key={r.id} className="review-card">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <StarRating value={r.rating} size="md" />
                 <small className="text-muted">{new Date(r.createdAt).toLocaleDateString('tr-TR')}</small>
               </div>
-              <p className="mb-0">
+              <p className="mb-0 text-secondary">
                 {r.comment?.trim() ? r.comment : 'Rating-only feedback.'}
               </p>
             </div>
@@ -380,7 +342,7 @@ export const ProductDetailPage = (): JSX.Element => {
         <div className="alert alert-info d-flex align-items-start gap-2">
           <i className="bi bi-info-circle mt-1" aria-hidden />
           <span>
-            <Link to="/login">Log in</Link> to submit a review. Submitted reviews are moderated before they appear above.
+            <Link to="/login">Log in</Link> to rate delivered products. Written comments are reviewed before they appear above.
           </span>
         </div>
       ) : (
@@ -399,7 +361,7 @@ export const ProductDetailPage = (): JSX.Element => {
             <form onSubmit={(e) => void handleSubmitReview(e)} className="mb-3">
               <div className="mb-3">
                 <label className="form-label">Rating (only for delivered items)</label>
-                <div><StarInput value={rating} onChange={setRating} /></div>
+                <StarRating value={rating} size="lg" interactive onChange={setRating} />
               </div>
               <button type="submit" className="btn btn-primary d-inline-flex align-items-center gap-2" disabled={submitting}>
                 {submitting ? (
@@ -420,7 +382,12 @@ export const ProductDetailPage = (): JSX.Element => {
               Your rating: <strong>{myReview.rating}/5</strong>
             </div>
           )}
-          {myReview && (
+          {myReview?.status === 'pending' && myReview.pendingComment ? (
+            <div className="alert alert-info mb-3">
+              Your comment is being reviewed and will appear once approved.
+            </div>
+          ) : null}
+          {myReview && myReview.status === 'approved' && (
             <form onSubmit={(e) => void handleSubmitComment(e)}>
               <div className="mb-3">
                 <label htmlFor="reviewComment" className="form-label">Comment</label>
@@ -451,6 +418,7 @@ export const ProductDetailPage = (): JSX.Element => {
           )}
         </div>
       )}
+      </section>
     </>
   );
 };

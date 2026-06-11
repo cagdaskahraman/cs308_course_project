@@ -13,6 +13,7 @@ describe('ReviewsService', () => {
   let service: ReviewsService;
   let reviewsRepository: {
     findOne: jest.Mock;
+    find: jest.Mock;
     create: jest.Mock;
     save: jest.Mock;
     createQueryBuilder: jest.Mock;
@@ -24,6 +25,7 @@ describe('ReviewsService', () => {
   beforeEach(async () => {
     reviewsRepository = {
       findOne: jest.fn(),
+      find: jest.fn(),
       create: jest.fn((v) => v),
       save: jest.fn(async (v) => ({ id: 'review-1', ...v })),
       createQueryBuilder: jest.fn(),
@@ -69,7 +71,7 @@ describe('ReviewsService', () => {
     reviewsRepository.createQueryBuilder.mockReturnValue(qb);
   }
 
-  it('creates rating for delivered product', async () => {
+  it('creates approved rating immediately for delivered product', async () => {
     const dto: CreateReviewDto = { productId: 'prod-1', rating: 5 };
     productsRepository.findOne.mockResolvedValue({ id: 'prod-1' });
     usersRepository.findOne.mockResolvedValue({ id: 'user-1' });
@@ -84,8 +86,7 @@ describe('ReviewsService', () => {
     expect(productsRepository.update).toHaveBeenCalled();
   });
 
-  it('adds pending comment to existing rating', async () => {
-    productsRepository.findOne.mockResolvedValue({ id: 'prod-1' });
+  it('queues comment for moderation on approved rating', async () => {
     reviewsRepository.findOne.mockResolvedValue({
       id: 'review-1',
       status: ReviewStatus.APPROVED,
@@ -96,5 +97,37 @@ describe('ReviewsService', () => {
     });
 
     expect(saved.pendingComment).toBe('Works great');
+    expect(saved.status).toBe(ReviewStatus.PENDING);
+  });
+
+  it('approves pending comment and keeps rating visible', async () => {
+    reviewsRepository.findOne.mockResolvedValue({
+      id: 'review-1',
+      status: ReviewStatus.PENDING,
+      pendingComment: 'Nice product',
+      rating: 5,
+      product: { id: 'prod-1' },
+    });
+
+    const saved = await service.approve('review-1');
+
+    expect(saved.status).toBe(ReviewStatus.APPROVED);
+    expect(saved.comment).toBe('Nice product');
+    expect(saved.pendingComment).toBeNull();
+  });
+
+  it('rejects pending comment but keeps approved rating', async () => {
+    reviewsRepository.findOne.mockResolvedValue({
+      id: 'review-1',
+      status: ReviewStatus.PENDING,
+      pendingComment: 'Spam',
+      rating: 4,
+      product: { id: 'prod-1' },
+    });
+
+    const saved = await service.reject('review-1');
+
+    expect(saved.status).toBe(ReviewStatus.APPROVED);
+    expect(saved.pendingComment).toBeNull();
   });
 });
