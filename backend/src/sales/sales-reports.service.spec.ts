@@ -28,10 +28,25 @@ describe('SalesReportsService', () => {
   });
 
   it('summarizes revenue for a valid date range', async () => {
+    invoiceRepository.find.mockResolvedValue([
+      {
+        total: 100,
+        issuedAt: new Date('2026-05-01'),
+        order: { items: [{ quantity: 1, priceAtPurchase: 100, product: { listPrice: 80 } }] },
+      },
+      {
+        total: 50,
+        issuedAt: new Date('2026-05-02'),
+        order: { items: [{ quantity: 1, priceAtPurchase: 50, product: { listPrice: 40 } }] },
+      },
+    ]);
+
     const summary = await service.getRevenueSummary('2026-05-01', '2026-05-31');
 
     expect(summary.invoiceCount).toBe(2);
     expect(summary.totalRevenue).toBe(150);
+    expect(summary.totalCost).toBe(78);
+    expect(summary.totalProfit).toBe(72);
     expect(summary.averageOrderValue).toBe(75);
   });
 
@@ -58,5 +73,32 @@ describe('SalesReportsService', () => {
     expect(invoices).toHaveLength(1);
     expect(invoices[0].invoiceNumber).toBe('INV-2026-000001');
     expect(invoices[0].orderId).toBe('order-1');
+  });
+
+  it('builds daily revenue chart points', async () => {
+    invoiceRepository.find.mockResolvedValue([
+      {
+        total: 100,
+        issuedAt: new Date('2026-05-01T10:00:00.000Z'),
+        order: { items: [{ quantity: 1, priceAtPurchase: 100, product: { listPrice: 100 } }] },
+      },
+      {
+        total: 50,
+        issuedAt: new Date('2026-05-01T18:00:00.000Z'),
+        order: { items: [{ quantity: 1, priceAtPurchase: 50, product: { listPrice: 50 } }] },
+      },
+      {
+        total: 25,
+        issuedAt: new Date('2026-05-02T09:00:00.000Z'),
+        order: { items: [{ quantity: 1, priceAtPurchase: 25, product: { listPrice: 25 } }] },
+      },
+    ]);
+
+    const chart = await service.getRevenueChart('2026-05-01', '2026-05-31');
+
+    expect(chart).toEqual([
+      { date: '2026-05-01', revenue: 150, cost: 97.5, profit: 52.5 },
+      { date: '2026-05-02', revenue: 25, cost: 16.25, profit: 8.75 },
+    ]);
   });
 });
